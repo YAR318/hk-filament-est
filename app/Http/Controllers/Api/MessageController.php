@@ -63,7 +63,17 @@ class MessageController extends Controller
             ]);
 
             // Guardar en historial de chat
-            $this->chatHistoryService->linkWhatsappMessage($message);
+            Log::info('Intentando guardar en historial de chat', [
+                'phone' => $message->from_number,
+                'content' => $message->message_body
+            ]);
+            
+            $chatMessage = $this->chatHistoryService->linkWhatsappMessage($message);
+            
+            Log::info('Mensaje guardado en historial', [
+                'chat_message_id' => $chatMessage->id,
+                'role' => $chatMessage->role
+            ]);
 
             Log::info('Mensaje guardado exitosamente', [
                 'id' => $message->id,
