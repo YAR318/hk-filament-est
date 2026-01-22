@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\AuthorizedUserController;
+use App\Http\Controllers\Api\ChatHistoryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,6 +16,10 @@ use Illuminate\Support\Facades\Route;
 
 // Ruta para recibir mensajes de WhatsApp desde n8n
 Route::post('/messages', [MessageController::class, 'store']);
+
+// Rutas para historial de chat
+Route::post('/chat/history', [ChatHistoryController::class, 'getHistory']);
+Route::post('/chat/save-response', [ChatHistoryController::class, 'saveAssistantResponse']);
 
 // Rutas para usuarios autorizados
 Route::get('/authorized-users/check/{phoneNumber}', [AuthorizedUserController::class, 'check']);
