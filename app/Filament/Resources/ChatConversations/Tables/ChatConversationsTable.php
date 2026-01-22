@@ -80,7 +80,7 @@ class ChatConversationsTable
                 Action::make('view_history')
                     ->label('Ver historial')
                     ->icon('heroicon-o-chat-bubble-left-right')
-                    ->url(fn ($record) => static::getResource()::getUrl('view-history', ['record' => $record])),
+                    ->url(fn ($record) => "/admin/chat-conversations/{$record->id}/history"),
                 EditAction::make(),
             ])
             ->toolbarActions([
