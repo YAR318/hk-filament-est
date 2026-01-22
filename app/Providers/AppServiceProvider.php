@@ -19,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Configurar locale para intl
+        if (extension_loaded('intl')) {
+            ini_set('intl.default_locale', 'en_US');
+        }
     }
 }

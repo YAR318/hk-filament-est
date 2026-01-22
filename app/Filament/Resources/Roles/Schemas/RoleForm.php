@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\Roles\Schemas;
 
 use Filament\Schemas\Schema;
-use Filament\Schemas\Components\TextInput;
-use Filament\Schemas\Components\CheckboxList;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\CheckboxList;
 use Spatie\Permission\Models\Permission;
 
 class RoleForm
