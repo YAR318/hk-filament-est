@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WhatsappMessage extends Model
 {
@@ -16,10 +17,20 @@ class WhatsappMessage extends Model
         'instance_name',
         'raw_data',
         'received_at',
+        'assigned_to',
+        'status',
+        'response',
+        'responded_at',
     ];
 
     protected $casts = [
         'raw_data' => 'array',
         'received_at' => 'datetime',
+        'responded_at' => 'datetime',
     ];
+
+    public function assignedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
 }

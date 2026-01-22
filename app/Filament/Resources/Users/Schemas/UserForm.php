@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
 
 class UserForm
@@ -13,15 +14,37 @@ class UserForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->required(),
+                    ->label('Nombre')
+                    ->required()
+                    ->maxLength(255),
+                
                 TextInput::make('email')
-                    ->label('Email address')
+                    ->label('Email')
                     ->email()
-                    ->required(),
-                DateTimePicker::make('email_verified_at'),
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
+                
                 TextInput::make('password')
+                    ->label('Contraseña')
                     ->password()
-                    ->required(),
+                    ->required(fn (string $context): bool => $context === 'create')
+                    ->dehydrated(fn ($state) => filled($state))
+                    ->minLength(8)
+                    ->maxLength(255)
+                    ->helperText('Mínimo 8 caracteres. Dejar vacío para mantener la contraseña actual.'),
+                
+                Select::make('roles')
+                    ->label('Rol')
+                    ->relationship('roles', 'name')
+                    ->preload()
+                    ->searchable()
+                    ->required()
+                    ->helperText('Selecciona el rol del usuario'),
+                
+                DateTimePicker::make('email_verified_at')
+                    ->label('Email verificado')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ]);
     }
 }
