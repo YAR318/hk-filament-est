@@ -33,4 +33,9 @@ class WhatsappMessage extends Model
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
+
+    public function chatMessage(): BelongsTo
+    {
+        return $this->belongsTo(ChatMessage::class, 'whatsapp_message_id');
+    }
 }
