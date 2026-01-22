@@ -71,12 +71,12 @@ class WhatsappMessagesTable
                 
                 TextColumn::make('received_at')
                     ->label('Recibido')
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime()
                     ->sortable(),
                 
                 TextColumn::make('responded_at')
                     ->label('Respondido')
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
