@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ChatConversations\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
@@ -76,6 +77,10 @@ class ChatConversationsTable
                     ]),
             ])
             ->recordActions([
+                Action::make('view_history')
+                    ->label('Ver historial')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->url(fn ($record) => static::getResource()::getUrl('view-history', ['record' => $record])),
                 EditAction::make(),
             ])
             ->toolbarActions([

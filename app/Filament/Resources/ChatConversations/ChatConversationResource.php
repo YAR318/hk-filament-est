@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ChatConversations;
 use App\Filament\Resources\ChatConversations\Pages\CreateChatConversation;
 use App\Filament\Resources\ChatConversations\Pages\EditChatConversation;
 use App\Filament\Resources\ChatConversations\Pages\ListChatConversations;
+use App\Filament\Resources\ChatConversations\Pages;
 use App\Filament\Resources\ChatConversations\Schemas\ChatConversationForm;
 use App\Filament\Resources\ChatConversations\Tables\ChatConversationsTable;
 use App\Models\ChatConversation;
@@ -51,6 +52,7 @@ class ChatConversationResource extends Resource
             'index' => ListChatConversations::route('/'),
             'create' => CreateChatConversation::route('/create'),
             'edit' => EditChatConversation::route('/{record}/edit'),
+            'view-history' => Pages\ViewConversationHistory::route('/{record}/history'),
         ];
     }
 }
