@@ -80,7 +80,7 @@
 
         {{-- Botón para volver --}}
         <div class="flex justify-end">
-            <a href="{{ ChatConversationResource::getUrl('index') }}" 
+            <a href="{{ \App\Filament\Resources\ChatConversations\ChatConversationResource::getUrl('index') }}" 
                class="inline-flex items-center px-4 py-2 bg-gray-200 dark:bg-gray-700 border border-transparent rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition">
                 Volver a conversaciones
             </a>

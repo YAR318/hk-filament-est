@@ -4,12 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\WhatsappMessage;
+use App\Services\ChatHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class MessageController extends Controller
 {
+    protected ChatHistoryService $chatHistoryService;
+
+    public function __construct(ChatHistoryService $chatHistoryService)
+    {
+        $this->chatHistoryService = $chatHistoryService;
+    }
+
     /**
      * Recibe mensajes de WhatsApp desde n8n
      * 
@@ -20,7 +28,7 @@ class MessageController extends Controller
     {
         try {
             // Log del request completo para debugging
-            Log::info('Mensaje recibido desde n8n (Meta API)', [
+            Log::info('Mensaje recibido desde n8n', [
                 'body' => $request->all(),
                 'headers' => $request->headers->all()
             ]);
@@ -54,7 +62,13 @@ class MessageController extends Controller
                 'received_at' => now(),
             ]);
 
-            Log::info('Mensaje guardado exitosamente', ['id' => $message->id]);
+            // Guardar en historial de chat
+            $this->chatHistoryService->linkWhatsappMessage($message);
+
+            Log::info('Mensaje guardado exitosamente', [
+                'id' => $message->id,
+                'phone' => $message->from_number
+            ]);
 
             return response()->json([
                 'success' => true,
