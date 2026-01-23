@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\MessageController;
-use App\Http\Controllers\Api\AuthorizedUserController;
+use App\Http\Controllers\Api\OperatorController;
 use App\Http\Controllers\Api\ChatHistoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,9 +21,9 @@ Route::post('/messages', [MessageController::class, 'store']);
 Route::post('/chat/history', [ChatHistoryController::class, 'getHistory']);
 Route::post('/chat/save-response', [ChatHistoryController::class, 'saveAssistantResponse']);
 
-// Rutas para usuarios autorizados
-Route::get('/authorized-users/check/{phoneNumber}', [AuthorizedUserController::class, 'check']);
-Route::post('/authorized-users/update-last-message', [AuthorizedUserController::class, 'updateLastMessage']);
+// Rutas para operadores
+Route::get('/operators/check/{phoneNumber}', [OperatorController::class, 'check']);
+Route::post('/operators/update-last-message', [OperatorController::class, 'updateLastMessage']);
 
 // Ruta de health check
 Route::get('/health', function () {

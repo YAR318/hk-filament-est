@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuthorizedUser;
+use App\Models\Operator;
 use Illuminate\Http\Request;
 
-class AuthorizedUserController extends Controller
+class OperatorController extends Controller
 {
     /**
      * Verificar si un usuario está autorizado para usar el bot
@@ -18,7 +18,7 @@ class AuthorizedUserController extends Controller
         $cleanNumber = preg_replace('/[^0-9]/', '', $cleanNumber);
 
         // Buscar usuario autorizado
-        $user = AuthorizedUser::where('phone_number', $cleanNumber)->first();
+        $user = Operator::where('phone_number', $cleanNumber)->first();
 
         // Si no existe, no está autorizado
         if (!$user) {
@@ -36,11 +36,11 @@ class AuthorizedUserController extends Controller
             ]);
         }
 
-        // Verificar límites usando el método del modelo
-        if (!$user->canSendMessage()) {
+        // Verificar si puede tomar más chats (adaptado para el nuevo sistema de operadores)
+        if (!$user->canTakeMoreChats()) {
             return response()->json([
                 'authorized' => false,
-                'reason' => 'Límite de mensajes alcanzado'
+                'reason' => 'Operador no disponible para nuevos chats'
             ]);
         }
 
@@ -50,9 +50,11 @@ class AuthorizedUserController extends Controller
             'user' => [
                 'name' => $user->name,
                 'phone_number' => $user->phone_number,
-                'company' => $user->company,
-                'daily_limit' => $user->daily_message_limit,
-                'hourly_limit' => $user->hourly_message_limit
+                'email' => $user->email,
+                'max_concurrent_chats' => $user->max_concurrent_chats,
+                'current_chats_count' => $user->current_chats_count,
+                'role' => $user->role,
+                'status' => $user->status
             ]
         ]);
     }
@@ -67,10 +69,10 @@ class AuthorizedUserController extends Controller
         // Limpiar el número
         $cleanNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
 
-        $user = AuthorizedUser::where('phone_number', $cleanNumber)->first();
+        $user = Operator::where('phone_number', $cleanNumber)->first();
 
         if ($user) {
-            $user->last_message_at = now();
+            $user->last_activity_at = now();
             $user->save();
 
             return response()->json([
