@@ -18,7 +18,8 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, ['admin', 'supervisor', 'operador', 'super_admin']) || str_ends_with($this->email, '@admin.com');
+        // Permitimos el login a todos, LoginResponse redirigirá según rol
+        return true;
     }
 
     protected static function booted(): void
@@ -27,17 +28,56 @@ class User extends Authenticatable implements FilamentUser
             if ($user->role !== 'user') {
                 $user->syncRoles($user->role);
             }
+
+            // Sincronizar con tabla operators SOLO si es operador
+            if ($user->role === 'operador') {
+                $user->syncOperator();
+            }
         });
 
         static::updated(function (User $user) {
             if ($user->isDirty('role')) {
                 if ($user->role === 'user') {
                     $user->roles()->detach();
+                    // Eliminar de operators si existía
+                    Operator::where('email', $user->email)->delete();
                 } else {
                     $user->syncRoles($user->role);
+
+                    // Sincronizar con tabla operators SOLO si es operador
+                    if ($user->role === 'operador') {
+                        $user->syncOperator();
+                    } else {
+                        // Si cambió a admin o supervisor, eliminar de operators
+                        Operator::where('email', $user->email)->delete();
+                    }
+                }
+            } else {
+                // Si cambió nombre o email, actualizar en operators solo si es operador
+                if (($user->isDirty('name') || $user->isDirty('email')) && $user->role === 'operador') {
+                    $user->syncOperator();
                 }
             }
         });
+    }
+
+    /**
+     * Sincronizar usuario con tabla de operadores
+     */
+    public function syncOperator(): void
+    {
+        Operator::updateOrCreate(
+            ['email' => $this->email],
+            [
+                'name' => $this->name,
+                'phone_number' => $this->phone_number ?? '+52' . substr(str_replace(['@', '.', 'gmail', 'com'], '', $this->email), 0, 10),
+                'role' => 'operador',
+                'is_active' => true,
+                'status' => 'offline',
+                'max_concurrent_chats' => 5,
+                'current_chats_count' => 0,
+            ]
+        );
     }
 
     /**
