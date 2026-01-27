@@ -18,9 +18,27 @@ class WhatsappMessageResource extends Resource
 {
     protected static ?string $model = WhatsappMessage::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
     protected static ?string $recordTitleAttribute = 'message_body';
+
+    public static function getNavigationIcon(): string|BackedEnum|null
+    {
+        return 'heroicon-o-chat-bubble-bottom-center-text';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Sistema';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 99;
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Logs de WhatsApp';
+    }
 
     public static function form(Schema $schema): Schema
     {

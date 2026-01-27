@@ -18,9 +18,22 @@ class RoleResource extends Resource
 {
     protected static ?string $model = Role::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Gestión';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
+    }
+
+    public static function getNavigationIcon(): string|BackedEnum|null
+    {
+        return 'heroicon-o-lock-closed';
+    }
 
     public static function form(Schema $schema): Schema
     {

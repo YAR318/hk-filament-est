@@ -19,15 +19,37 @@ class ChatConversationResource extends Resource
 {
     protected static ?string $model = ChatConversation::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
-
-    protected static ?string $navigationLabel = 'Conversaciones';
-    
-    protected static ?string $modelLabel = 'Conversación';
-    
-    protected static ?string $pluralModelLabel = 'Conversaciones';
-
     protected static ?string $recordTitleAttribute = 'phone_number';
+
+    public static function getNavigationIcon(): string|BackedEnum|null
+    {
+        return 'heroicon-o-chat-bubble-left-right';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Atención';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Conversaciones';
+    }
+
+    public static function getModelLabel(): string
+    {
+        return 'Conversación';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Conversaciones';
+    }
 
     public static function form(Schema $schema): Schema
     {

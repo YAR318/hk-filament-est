@@ -23,15 +23,22 @@ class OperatorResource extends Resource
 {
     protected static ?string $model = Operator::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-    
-    protected static ?string $navigationLabel = 'Operadores';
-    
-    protected static ?string $pluralModelLabel = 'Operadores';
-    
-    protected static ?string $modelLabel = 'Operador';
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Atención';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
+    }
+
+    public static function getNavigationIcon(): string|BackedEnum|null
+    {
+        return 'heroicon-o-users';
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -44,7 +51,7 @@ class OperatorResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->helperText('Nombre completo del operador como aparecerá en el sistema'),
-                            
+
                         Forms\Components\TextInput::make('email')
                             ->label('Correo Electrónico')
                             ->email()
@@ -52,7 +59,7 @@ class OperatorResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->maxLength(255)
                             ->helperText('Email único para identificación y notificaciones'),
-                            
+
                         Forms\Components\TextInput::make('phone_number')
                             ->label('Número de Teléfono')
                             ->required()
@@ -76,7 +83,7 @@ class OperatorResource extends Resource
                             ->default('operador')
                             ->required()
                             ->helperText('Define los permisos y responsabilidades del operador'),
-                            
+
                         Forms\Components\Select::make('status')
                             ->label('Estado Actual')
                             ->options([
@@ -88,12 +95,12 @@ class OperatorResource extends Resource
                             ->default('offline')
                             ->required()
                             ->helperText('Estado actual del operador en el sistema'),
-                            
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Operador Activo')
                             ->default(true)
                             ->helperText('Solo los operadores activos pueden recibir conversaciones asignadas'),
-                            
+
                         Forms\Components\TextInput::make('max_concurrent_chats')
                             ->label('Máximo Chats Simultáneos')
                             ->numeric()
@@ -113,17 +120,17 @@ class OperatorResource extends Resource
                             ->disabled()
                             ->dehydrated(false)
                             ->helperText('Número actual de conversaciones asignadas (solo lectura)')
-                            ->visible(fn ($record) => $record !== null),
-                            
+                            ->visible(fn($record) => $record !== null),
+
                         Forms\Components\DateTimePicker::make('last_activity_at')
                             ->label('Última Actividad')
                             ->disabled()
                             ->dehydrated(false)
                             ->helperText('Fecha y hora de la última actividad registrada (solo lectura)')
-                            ->visible(fn ($record) => $record !== null),
+                            ->visible(fn($record) => $record !== null),
                     ])
                     ->columns(2)
-                    ->visible(fn ($record) => $record !== null),
+                    ->visible(fn($record) => $record !== null),
             ]);
     }
 
@@ -136,59 +143,59 @@ class OperatorResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Medium),
-                    
+
                 Tables\Columns\TextColumn::make('email')
                     ->label('Email')
                     ->searchable()
                     ->copyable()
                     ->copyMessage('Email copiado')
                     ->copyMessageDuration(1500),
-                    
+
                 Tables\Columns\TextColumn::make('phone_number')
                     ->label('Teléfono')
                     ->searchable()
                     ->copyable(),
-                    
+
                 Tables\Columns\TextColumn::make('role')
                     ->label('Rol')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'admin' => 'danger',
                         'supervisor' => 'warning',
                         'operador' => 'success',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'admin' => 'Administrador',
                         'supervisor' => 'Supervisor',
                         'operador' => 'Operador',
                         default => $state,
                     }),
-                    
+
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'available' => 'success',
                         'busy' => 'warning',
                         'away' => 'info',
                         'offline' => 'gray',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'available' => 'Disponible',
                         'busy' => 'Ocupado',
                         'away' => 'Ausente',
                         'offline' => 'Desconectado',
                         default => $state,
                     }),
-                    
+
                 Tables\Columns\TextColumn::make('current_chats_count')
                     ->label('Chats Activos')
                     ->badge()
                     ->color('primary')
-                    ->suffix(fn (Operator $record): string => " / {$record->max_concurrent_chats}"),
-                    
+                    ->suffix(fn(Operator $record): string => " / {$record->max_concurrent_chats}"),
+
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Activo')
                     ->boolean()
@@ -196,13 +203,13 @@ class OperatorResource extends Resource
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('danger'),
-                    
+
                 Tables\Columns\TextColumn::make('last_activity_at')
                     ->label('Última Actividad')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->placeholder('Nunca'),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime('d/m/Y')
@@ -217,7 +224,7 @@ class OperatorResource extends Resource
                         'supervisor' => 'Supervisor',
                         'operador' => 'Operador'
                     ]),
-                    
+
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Estado')
                     ->options([
@@ -226,7 +233,7 @@ class OperatorResource extends Resource
                         'away' => 'Ausente',
                         'offline' => 'Desconectado'
                     ]),
-                    
+
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Activo')
                     ->placeholder('Todos')
@@ -256,9 +263,9 @@ class OperatorResource extends Resource
                         ]);
                     })
                     ->successNotificationTitle('Estado actualizado correctamente'),
-                    
+
                 EditAction::make(),
-                
+
                 DeleteAction::make()
                     ->requiresConfirmation(),
             ])
@@ -266,23 +273,23 @@ class OperatorResource extends Resource
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->requiresConfirmation(),
-                        
+
                     BulkAction::make('activate')
                         ->label('Activar Seleccionados')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function ($records) {
-                            $records->each(fn (Operator $record) => $record->update(['is_active' => true]));
+                            $records->each(fn(Operator $record) => $record->update(['is_active' => true]));
                         })
                         ->requiresConfirmation()
                         ->deselectRecordsAfterCompletion(),
-                        
+
                     BulkAction::make('deactivate')
                         ->label('Desactivar Seleccionados')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->action(function ($records) {
-                            $records->each(fn (Operator $record) => $record->update(['is_active' => false]));
+                            $records->each(fn(Operator $record) => $record->update(['is_active' => false]));
                         })
                         ->requiresConfirmation()
                         ->deselectRecordsAfterCompletion(),
