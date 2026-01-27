@@ -38,9 +38,9 @@ class UserForm
                     ->label('Tipo de Acceso (Sistema)')
                     ->options([
                         'admin' => 'Administrador (Acceso Total)',
-                        'agent' => 'Agente (Acceso Limitado)',
-                        'user' => 'Usuario Cliente (Sin Acceso)',
-                        'super_admin' => 'Super Admin',
+                        'supervisor' => 'Supervisor (Gestión de Agentes)',
+                        'operador' => 'Agente (Atención al Cliente)',
+                        'user' => 'Usuario Cliente (Sin Acceso Panel)',
                     ])
                     ->required()
                     ->default('user')
@@ -51,8 +51,7 @@ class UserForm
                     ->relationship('roles', 'name')
                     ->preload()
                     ->searchable()
-                    ->required()
-                    ->helperText('Selecciona el rol del usuario'),
+                    ->helperText('Roles adicionales del sistema de permisos (Spatie)'),
 
                 DateTimePicker::make('email_verified_at')
                     ->label('Email verificado')

@@ -14,32 +14,32 @@ class RolePermissionSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Crear permisos
+        // Crear permisos (EN ESPAÑOL)
         $permissions = [
             // Mensajes WhatsApp
-            'view_messages',
-            'view_all_messages',
-            'reply_messages',
-            'assign_messages',
-            'delete_messages',
-            
+            'ver_mensajes',
+            'ver_todos_mensajes',
+            'responder_mensajes',
+            'asignar_mensajes',
+            'eliminar_mensajes',
+
             // Usuarios
-            'view_users',
-            'create_users',
-            'edit_users',
-            'delete_users',
-            
+            'ver_usuarios',
+            'crear_usuarios',
+            'editar_usuarios',
+            'eliminar_usuarios',
+
             // Roles y permisos
-            'manage_roles',
-            'manage_permissions',
-            
+            'gestionar_roles',
+            'gestionar_permisos',
+
             // Configuración
-            'view_settings',
-            'edit_settings',
-            
+            'ver_configuracion',
+            'editar_configuracion',
+
             // Reportes
-            'view_reports',
-            'export_reports',
+            'ver_reportes',
+            'exportar_reportes',
         ];
 
         foreach ($permissions as $permission) {
