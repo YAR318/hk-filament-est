@@ -21,6 +21,15 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    public function register(): void
+    {
+        parent::register();
+        $this->app->bind(
+            \Filament\Auth\Http\Responses\Contracts\LogoutResponse::class,
+            \App\Filament\Responses\LogoutResponse::class
+        );
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -29,8 +38,11 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Red,
             ])
+            ->brandLogo(fn() => view('filament.logo'))
+            ->brandLogoHeight('3rem')
+            ->defaultThemeMode(\Filament\Enums\ThemeMode::Dark)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -57,7 +69,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 'panels::auth.login.form.after',
-                fn () => view('components.back-to-main-login')
+                fn() => view('components.back-to-main-login')
             );
     }
 }
