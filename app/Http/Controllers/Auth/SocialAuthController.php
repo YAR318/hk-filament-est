@@ -26,27 +26,42 @@ class SocialAuthController extends Controller
     {
         try {
             $socialUser = Socialite::driver($provider)->user();
-            
+
             // Find or create user
             $user = User::where('email', $socialUser->getEmail())->first();
-            
+
             if (!$user) {
                 $user = User::create([
                     'name' => $socialUser->getName(),
                     'email' => $socialUser->getEmail(),
                     'password' => Hash::make(Str::random(24)),
                     'email_verified_at' => now(),
+                    'role' => 'user', // Asignar rol por defecto
                 ]);
             }
-            
+
             // Login user
             Auth::login($user, true);
-            
-            // Redirect to Filament dashboard
-            return redirect()->intended('/admin');
-            
+
+            // Redirigir según el rol del usuario
+            return $this->redirectByRole($user);
+
         } catch (\Exception $e) {
             return redirect('/')->with('error', 'Error al autenticar con ' . ucfirst($provider));
         }
+    }
+
+    /**
+     * Redirigir según el rol del usuario
+     */
+    protected function redirectByRole(User $user): \Illuminate\Http\RedirectResponse
+    {
+        // Usuarios con acceso al panel admin
+        if (in_array($user->role, ['admin', 'supervisor', 'operador', 'super_admin'])) {
+            return redirect('/admin');
+        }
+
+        // Usuarios comunes van a su perfil
+        return redirect('/profile');
     }
 }

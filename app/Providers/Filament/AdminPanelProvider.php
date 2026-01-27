@@ -28,6 +28,10 @@ class AdminPanelProvider extends PanelProvider
             \Filament\Auth\Http\Responses\Contracts\LogoutResponse::class,
             \App\Filament\Responses\LogoutResponse::class
         );
+        $this->app->bind(
+            \Filament\Auth\Http\Responses\Contracts\LoginResponse::class,
+            \App\Filament\Responses\LoginResponse::class
+        );
     }
 
     public function panel(Panel $panel): Panel
