@@ -36,3 +36,7 @@ fix_*.sql
 
 # Archivos HTML de prueba
 temp_*.html
+
+# Workflows n8n (contienen API keys y configuración sensible)
+*_workflow*.json
+n8n_*.json
