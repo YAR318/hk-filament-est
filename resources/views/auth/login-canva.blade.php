@@ -3,7 +3,6 @@
 @section('title', 'Acceso al Sistema - Hunabku')
 
 @section('content')
-    <!-- Fuentes Poppins -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
@@ -13,15 +12,13 @@
     </style>
 
     <div class="min-h-screen bg-[#1e293b] flex items-center justify-center p-4 relative overflow-hidden">
-        <!-- Patrón de fondo sutil -->
+        <!-- Patrón de fondo -->
         <div class="absolute inset-0 opacity-5 pointer-events-none"
             style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-rule=\'evenodd\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/svg%3E');">
         </div>
 
-        <!-- Login Card -->
         <div
             class="w-full max-w-md bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-2xl p-8 relative z-10">
-
             <!-- Logo Header -->
             <div class="text-center mb-8">
                 <div class="inline-flex items-center justify-center mb-4">
@@ -48,8 +45,7 @@
                 </div>
             @endif
 
-            <!-- Actions -->
-            <div class="space-y-4">
+            <div x-data="{ showEmailForm: false, showOtherOptions: false }" class="space-y-4">
                 <!-- Google Login -->
                 <a href="{{ route('auth.redirect', 'google') }}"
                     class="flex items-center justify-center w-full py-3.5 px-4 bg-white hover:bg-gray-50 text-gray-900 rounded-xl font-semibold transition-all transform hover:-translate-y-0.5 hover:shadow-lg">
@@ -66,20 +62,79 @@
                     Continuar con Google
                 </a>
 
-                <div class="relative py-2">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-gray-600"></div>
-                    </div>
-                    <div class="relative flex justify-center">
-                        <span class="px-2 bg-[#1e293b] text-xs text-gray-500 uppercase">O iniciar con credenciales</span>
-                    </div>
+                <!-- Botón Usar mi correo -->
+                <button @click="showEmailForm = !showEmailForm; showOtherOptions = false" type="button"
+                    class="flex items-center justify-center w-full py-3.5 px-4 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all transform hover:-translate-y-0.5 shadow-lg shadow-red-500/30">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Usar mi correo
+                </button>
+
+                <!-- Formulario de correo (oculto inicialmente) -->
+                <div x-show="showEmailForm" x-transition class="space-y-3 pt-2">
+                    <form method="POST" action="{{ route('otp.send') }}" class="space-y-3">
+                        @csrf
+                        <div>
+                            <input type="email" name="email" required placeholder="tu-correo@ejemplo.com"
+                                class="w-full px-4 py-3 bg-[#0f172a]/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all">
+                            @error('email')
+                                <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <button type="submit"
+                            class="flex items-center justify-center w-full py-3 px-4 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all">
+                            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            Enviar código a mi correo
+                        </button>
+                    </form>
                 </div>
 
-                <!-- Email Login Link -->
-                <a href="/admin/login"
-                    class="flex items-center justify-center w-full py-3.5 px-4 bg-transparent border border-gray-600 text-gray-300 hover:text-white hover:border-white rounded-xl font-medium transition-colors">
-                    Acceso Administrativo
-                </a>
+                <!-- Botón Continuar de otra manera -->
+                <button @click="showOtherOptions = !showOtherOptions; showEmailForm = false" type="button"
+                    class="flex items-center justify-center w-full py-3 px-4 bg-transparent border border-gray-600 text-gray-300 hover:text-white hover:border-white rounded-xl font-medium transition-colors">
+                    <span>Continuar de otra manera</span>
+                    <svg class="w-4 h-4 ml-2 transition-transform" :class="showOtherOptions ? 'rotate-180' : ''" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <!-- Opciones adicionales -->
+                <div x-show="showOtherOptions" x-transition class="space-y-2">
+                    <a href="/admin/login"
+                        class="flex items-center px-4 py-3 bg-[#0f172a]/50 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white rounded-xl transition-colors">
+                        <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Acceso Administrativo
+                    </a>
+                    <a href="http://hk_autenticacion_est.test/login"
+                        class="flex items-center px-4 py-3 bg-[#0f172a]/50 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white rounded-xl transition-colors">
+                        <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Correo y contraseña
+                    </a>
+                </div>
+
+                <!-- Link registro -->
+                <div class="flex items-center justify-center pt-4 border-t border-gray-700">
+                    <a href="http://hk_autenticacion_est.test/register"
+                        class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        ¿No tienes cuenta? <span class="text-red-400 font-medium">Crear cuenta</span>
+                    </a>
+                </div>
             </div>
 
             <div class="mt-8 text-center">
@@ -87,4 +142,7 @@
             </div>
         </div>
     </div>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 @endsection
