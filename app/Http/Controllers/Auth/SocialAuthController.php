@@ -61,7 +61,7 @@ class SocialAuthController extends Controller
             return redirect('/admin');
         }
 
-        // Usuarios comunes van a su perfil
-        return redirect('/profile');
+        // Usuarios comunes van a su perfil en el otro sistema
+        return redirect()->away('https://hk_autenticacion_est.test/profile');
     }
 }

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\Auth\OtpController;
 use App\Http\Controllers\ProfileController;
 
 // Login principal estilo Canva
@@ -15,15 +16,17 @@ Route::get('/', function () {
             return redirect('/admin');
         }
 
-        // Usuarios comunes van a su perfil
-        return redirect('/profile');
+        // Usuarios comunes ven la pantalla intermedia
+        return view('auth.interstitial');
     }
     return view('auth.login-canva');
 })->name('login');
 
-// Perfil para usuarios comunes
+// Perfil para usuarios comunes (Redirección externa)
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::get('/profile', function () {
+        return redirect()->away('https://hk_autenticacion_est.test/profile');
+    })->name('profile');
     Route::post('/profile/logout', [ProfileController::class, 'logout'])->name('profile.logout');
 });
 
@@ -38,3 +41,10 @@ Route::get('/auth/{provider}', [SocialAuthController::class, 'redirectToProvider
 
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])
     ->name('auth.callback');
+
+// OTP Routes
+Route::post('/otp/send', [OtpController::class, 'sendOtp'])->name('otp.send');
+Route::get('/otp/verify', [OtpController::class, 'showVerifyForm'])->name('otp.verify.form');
+Route::post('/otp/verify', [OtpController::class, 'verifyOtp'])->name('otp.verify');
+Route::get('/otp/password', [OtpController::class, 'showPasswordForm'])->name('otp.password.form');
+Route::post('/otp/password', [OtpController::class, 'updatePassword'])->name('otp.password.update');
