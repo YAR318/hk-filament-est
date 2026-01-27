@@ -19,6 +19,7 @@ Route::post('/messages', [MessageController::class, 'store']);
 
 // Rutas para historial de chat
 Route::post('/chat/history', [ChatHistoryController::class, 'getHistory']);
+Route::get('/chat-history/{phone}', [ChatHistoryController::class, 'getHistoryByPhone']);
 Route::post('/chat/save-response', [ChatHistoryController::class, 'saveAssistantResponse']);
 
 // Rutas para operadores

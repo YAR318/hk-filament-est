@@ -77,4 +77,38 @@ class ChatHistoryController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Obtener historial de chat por número de teléfono (GET)
+     * Endpoint simplificado para n8n workflow
+     * 
+     * @param string $phone
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getHistoryByPhone(string $phone, Request $request)
+    {
+        $limit = $request->query('limit', 20);
+
+        // Limpiar número de teléfono
+        $phoneClean = preg_replace('/\D/', '', $phone);
+
+        $history = $this->chatHistoryService->getHistoryForLLM($phoneClean, $limit);
+
+        // Formatear para n8n workflow
+        $messages = collect($history)->map(function ($item) {
+            return [
+                'direction' => $item['role'] === 'user' ? 'incoming' : 'outgoing',
+                'message_content' => $item['content'],
+                'timestamp' => $item['timestamp'] ?? now()->toDateTimeString()
+            ];
+        })->values()->toArray();
+
+        return response()->json([
+            'success' => true,
+            'phone_number' => $phoneClean,
+            'messages_count' => count($messages),
+            'messages' => $messages
+        ]);
+    }
 }

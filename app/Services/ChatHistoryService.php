@@ -29,9 +29,15 @@ class ChatHistoryService
     public function addUserMessage(
         string $phoneNumber,
         string $content,
-        ?int $whatsappMessageId = null
+        ?int $whatsappMessageId = null,
+        ?string $contactName = null
     ): ChatMessage {
-        $conversation = $this->getOrCreateConversation($phoneNumber);
+        $conversation = $this->getOrCreateConversation($phoneNumber, $contactName);
+
+        // Actualizar nombre si se proporciona y la conversación no tiene uno
+        if ($contactName && !$conversation->contact_name) {
+            $conversation->update(['contact_name' => $contactName]);
+        }
 
         $message = ChatMessage::create([
             'conversation_id' => $conversation->id,
@@ -106,9 +112,11 @@ class ChatHistoryService
      */
     public function getConversation(string $phoneNumber): ?ChatConversation
     {
-        return ChatConversation::with(['messages' => function ($query) {
-            $query->latest('sent_at')->limit(50);
-        }])->where('phone_number', $phoneNumber)->first();
+        return ChatConversation::with([
+            'messages' => function ($query) {
+                $query->latest('sent_at')->limit(50);
+            }
+        ])->where('phone_number', $phoneNumber)->first();
     }
 
     /**
