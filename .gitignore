@@ -16,3 +16,23 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Documentación y scripts de prueba
+*.md
+!README.md
+*.txt
+*.tmp
+*.temp
+*.swp
+*.swo
+*.log
+*.bak
+
+# Scripts de prueba
+create_*.php
+test_*.php
+insertar_*.php
+fix_*.sql
+
+# Archivos HTML de prueba
+temp_*.html
