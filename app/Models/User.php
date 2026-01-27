@@ -21,6 +21,25 @@ class User extends Authenticatable implements FilamentUser
         return in_array($this->role, ['admin', 'supervisor', 'operador', 'super_admin']) || str_ends_with($this->email, '@admin.com');
     }
 
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            if ($user->role !== 'user') {
+                $user->syncRoles($user->role);
+            }
+        });
+
+        static::updated(function (User $user) {
+            if ($user->isDirty('role')) {
+                if ($user->role === 'user') {
+                    $user->roles()->detach();
+                } else {
+                    $user->syncRoles($user->role);
+                }
+            }
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -30,6 +49,7 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**

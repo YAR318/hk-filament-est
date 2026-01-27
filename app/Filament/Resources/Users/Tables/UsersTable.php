@@ -19,37 +19,45 @@ class UsersTable
                     ->label('Nombre')
                     ->searchable()
                     ->sortable(),
-                
+
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable()
                     ->sortable()
                     ->copyable(),
-                
-                TextColumn::make('roles.name')
-                    ->label('Rol')
+
+                TextColumn::make('role')
+                    ->label('Tipo de Acceso')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'admin' => 'danger',
                         'supervisor' => 'warning',
                         'operador' => 'success',
+                        'user' => 'gray',
                         default => 'gray',
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'admin' => 'Administrador',
+                        'supervisor' => 'Supervisor',
+                        'operador' => 'Agente/Operador',
+                        'user' => 'Usuario Cliente',
+                        default => $state,
                     })
                     ->searchable()
                     ->sortable(),
-                
+
                 TextColumn::make('email_verified_at')
                     ->label('Email verificado')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 TextColumn::make('updated_at')
                     ->label('Actualizado')
                     ->dateTime()
@@ -57,10 +65,14 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('roles')
-                    ->label('Rol')
-                    ->relationship('roles', 'name')
-                    ->preload(),
+                SelectFilter::make('role')
+                    ->label('Tipo de Acceso')
+                    ->options([
+                        'admin' => 'Administrador',
+                        'supervisor' => 'Supervisor',
+                        'operador' => 'Agente/Operador',
+                        'user' => 'Usuario Cliente',
+                    ]),
             ])
             ->recordActions([
                 EditAction::make(),

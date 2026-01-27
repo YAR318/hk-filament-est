@@ -29,10 +29,10 @@ class UserForm
                     ->label('Contraseña')
                     ->password()
                     ->required(fn(string $context): bool => $context === 'create')
+                    ->hiddenOn('edit')
                     ->dehydrated(fn($state) => filled($state))
                     ->minLength(8)
-                    ->maxLength(255)
-                    ->helperText('Mínimo 8 caracteres. Dejar vacío para mantener la contraseña actual.'),
+                    ->maxLength(255),
 
                 Select::make('role')
                     ->label('Tipo de Acceso (Sistema)')
@@ -46,16 +46,12 @@ class UserForm
                     ->default('user')
                     ->native(false),
 
-                Select::make('roles')
-                    ->label('Roles y Permisos (Detallado)')
-                    ->relationship('roles', 'name')
-                    ->preload()
-                    ->searchable()
-                    ->helperText('Roles adicionales del sistema de permisos (Spatie)'),
-
-                DateTimePicker::make('email_verified_at')
-                    ->label('Email verificado')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                \Filament\Forms\Components\Toggle::make('email_verified_at')
+                    ->label('Email Verificado')
+                    ->onColor('success')
+                    ->offColor('danger')
+                    ->formatStateUsing(fn($state) => $state !== null)
+                    ->dehydrateStateUsing(fn($state) => $state ? now() : null),
             ]);
     }
 }
