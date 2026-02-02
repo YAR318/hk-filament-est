@@ -35,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
             ini_set('intl.default_locale', 'en_US');
         }
 
+        // Registrar Observer para sincronizar Users → Operators
+        User::observe(\App\Observers\UserObserver::class);
+
         // Registrar Policies para control de acceso
         Gate::policy(ChatConversation::class, ChatConversationPolicy::class);
         Gate::policy(User::class, UserPolicy::class);

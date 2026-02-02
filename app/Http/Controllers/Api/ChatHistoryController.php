@@ -44,7 +44,7 @@ class ChatHistoryController extends Controller
     }
 
     /**
-     * Guardar respuesta del asistente
+     * Para guardar la respuesta del asistente
      * 
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -80,7 +80,7 @@ class ChatHistoryController extends Controller
 
     /**
      * Obtener historial de chat por número de teléfono (GET)
-     * Endpoint simplificado para n8n workflow
+     * Endpoint para n8n workflow
      * 
      * @param string $phone
      * @param Request $request
