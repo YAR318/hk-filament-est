@@ -111,4 +111,66 @@ class ChatHistoryController extends Controller
             'messages' => $messages
         ]);
     }
+
+    /**
+     * Endpoint unificado para procesar mensajes entrantes de n8n
+     * Valida si el mensaje debe procesarse y devuelve historial
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function processIncomingMessage(Request $request)
+    {
+        // Extraer datos del request
+        $phoneNumber = $request->input('phone_number');
+        $messageBody = $request->input('message_body');
+        $messageId = $request->input('message_id');
+        $remoteJid = $request->input('remote_jid', '');
+        $fromMe = $request->input('from_me', false);
+        $userName = $request->input('user_name', 'Cliente');
+
+        // Validación básica
+        if (!$phoneNumber || !$messageBody) {
+            return response()->json([
+                'process' => false,
+                'reason' => 'phone_number y message_body son requeridos'
+            ], 400);
+        }
+
+        // Limpiar número de teléfono
+        $phoneClean = preg_replace('/\D/', '', $phoneNumber);
+
+        // Validar si debe procesarse
+        $validation = $this->chatHistoryService->shouldProcessMessage($phoneClean, [
+            'remoteJid' => $remoteJid,
+            'fromMe' => $fromMe,
+        ]);
+
+        // Si no debe procesarse, devolver razón
+        if (!$validation['process']) {
+            return response()->json([
+                'process' => false,
+                'reason' => $validation['reason']
+            ]);
+        }
+
+        // Guardar mensaje del usuario
+        $this->chatHistoryService->addUserMessage(
+            $phoneClean,
+            $messageBody,
+            null,
+            $userName
+        );
+
+        // Obtener historial para LLM
+        $history = $this->chatHistoryService->getHistoryForLLM($phoneClean, 10);
+
+        return response()->json([
+            'process' => true,
+            'phone' => $phoneClean,
+            'user_name' => $userName,
+            'remote_jid' => $remoteJid,
+            'history' => $history
+        ]);
+    }
 }

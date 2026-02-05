@@ -5,9 +5,61 @@ namespace App\Services;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use App\Models\WhatsappMessage;
+use App\Models\BlockedPhone;
 
 class ChatHistoryService
 {
+    /**
+     * Número del dueño para evitar auto-respuesta (anti-bucle)
+     * TODO: Mover a configuración o base de datos
+     */
+    private const OWNER_JID_FRAGMENT = '7531672288';
+
+    /**
+     * Validar si un mensaje debe ser procesado por el bot
+     * 
+     * @param string $phoneNumber Número de teléfono normalizado
+     * @param array $messageData Datos del mensaje (remoteJid, fromMe, etc.)
+     * @return array ['process' => bool, 'reason' => string|null]
+     */
+    public function shouldProcessMessage(string $phoneNumber, array $messageData): array
+    {
+        $remoteJid = $messageData['remoteJid'] ?? '';
+        $fromMe = $messageData['fromMe'] ?? false;
+
+        // 1. Verificar si es mensaje propio (anti-bucle)
+        if ($fromMe === true) {
+            return ['process' => false, 'reason' => 'Mensaje propio ignorado'];
+        }
+
+        // 2. Verificar si es mensaje de grupo (@g.us)
+        if (str_contains($remoteJid, '@g.us')) {
+            return ['process' => false, 'reason' => 'Mensaje de grupo ignorado'];
+        }
+
+        // 3. Verificar si es LID no resoluble
+        if (str_contains($remoteJid, '@lid') && empty($phoneNumber)) {
+            return ['process' => false, 'reason' => 'LID no resuelto'];
+        }
+
+        // 4. Verificar si contiene el número del dueño (anti-bucle)
+        if (str_contains($phoneNumber, self::OWNER_JID_FRAGMENT) || str_contains($remoteJid, self::OWNER_JID_FRAGMENT)) {
+            return ['process' => false, 'reason' => 'Bucle de dueño detectado'];
+        }
+
+        // 5. Verificar si está bloqueado en la base de datos
+        if (BlockedPhone::isBlocked($phoneNumber)) {
+            return ['process' => false, 'reason' => 'Número bloqueado'];
+        }
+
+        // 6. Verificar si la conversación está bloqueada
+        $conversation = ChatConversation::where('phone_number', $phoneNumber)->first();
+        if ($conversation && $conversation->status === 'blocked') {
+            return ['process' => false, 'reason' => 'Conversación bloqueada'];
+        }
+
+        return ['process' => true, 'reason' => null];
+    }
     /**
      * Obtener o crear conversación por número telefónico
      */
