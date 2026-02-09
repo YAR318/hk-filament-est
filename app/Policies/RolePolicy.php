@@ -11,35 +11,50 @@ class RolePolicy
     use HandlesAuthorization;
 
     /**
-     * Solo admin puede gestionar roles
+     * Verificar si el usuario puede ver la lista de roles.
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('gestionar_roles');
     }
 
+    /**
+     * Verificar si el usuario puede ver un rol específico.
+     */
     public function view(User $user, Role $role): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('gestionar_roles');
     }
 
+    /**
+     * Verificar si el usuario puede crear roles.
+     */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('gestionar_roles');
     }
 
+    /**
+     * Verificar si el usuario puede actualizar un rol.
+     */
     public function update(User $user, Role $role): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('gestionar_roles');
     }
 
+    /**
+     * Verificar si el usuario puede eliminar un rol.
+     */
     public function delete(User $user, Role $role): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('gestionar_roles');
     }
 
+    /**
+     * Verificar si el usuario puede eliminar múltiples roles.
+     */
     public function deleteAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('gestionar_roles');
     }
 }

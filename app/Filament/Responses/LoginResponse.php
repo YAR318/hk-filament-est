@@ -13,7 +13,7 @@ class LoginResponse implements LoginResponseContract
         $user = Auth::user();
 
         // Usuarios con acceso al panel admin
-        if (in_array($user->role, ['admin', 'supervisor', 'operador', 'super_admin'])) {
+        if ($user->can('acceder_panel')) {
             return redirect()->intended('/admin');
         }
 

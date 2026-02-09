@@ -19,7 +19,7 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         // Permitimos el login a todos, LoginResponse redirigirá según rol
-        return true;
+        return $this->can('acceder_panel');
     }
 
     protected static function booted(): void
@@ -41,18 +41,21 @@ class User extends Authenticatable implements FilamentUser
                     $user->roles()->detach();
                     // Eliminar de operators si existía
                     Operator::where('email', $user->email)->delete();
-                } else {
+                }
+                else {
                     $user->syncRoles($user->role);
 
                     // Sincronizar con tabla operators SOLO si es operador
                     if ($user->role === 'operador') {
                         $user->syncOperator();
-                    } else {
+                    }
+                    else {
                         // Si cambió a admin o supervisor, eliminar de operators
                         Operator::where('email', $user->email)->delete();
                     }
                 }
-            } else {
+            }
+            else {
                 // Si cambió nombre o email, actualizar en operators solo si es operador
                 if (($user->isDirty('name') || $user->isDirty('email')) && $user->role === 'operador') {
                     $user->syncOperator();
@@ -67,16 +70,16 @@ class User extends Authenticatable implements FilamentUser
     public function syncOperator(): void
     {
         Operator::updateOrCreate(
-            ['email' => $this->email],
-            [
-                'name' => $this->name,
-                'phone_number' => $this->phone_number ?? '+52' . substr(str_replace(['@', '.', 'gmail', 'com'], '', $this->email), 0, 10),
-                'role' => 'operador',
-                'is_active' => true,
-                'status' => 'offline',
-                'max_concurrent_chats' => 5,
-                'current_chats_count' => 0,
-            ]
+        ['email' => $this->email],
+        [
+            'name' => $this->name,
+            'phone_number' => $this->phone_number ?? '+52' . substr(str_replace(['@', '.', 'gmail', 'com'], '', $this->email), 0, 10),
+            'role' => 'operador',
+            'is_active' => true,
+            'status' => 'offline',
+            'max_concurrent_chats' => 5,
+            'current_chats_count' => 0,
+        ]
         );
     }
 

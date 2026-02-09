@@ -5,12 +5,12 @@ namespace App\Filament\Resources\Roles\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Models\Permission;
 
 class RoleForm
 {
@@ -36,13 +36,16 @@ class RoleForm
                             ->relationship('permissions', 'name')
                             ->hidden()
                             ->live()
-                            ->afterStateHydrated(function ($component, $state, Set $set) {
+                            ->afterStateHydrated(function ($component, $state, $set) {
                                 // Cuando se cargan los permisos desde la BD, distribuirlos a los grupos visuales
                                 if (!is_array($state)) return;
                                 
+                                // Convertir IDs a Nombres para que coincida con los keys de los grupos
+                                $permissionNames = Permission::whereIn('id', $state)->pluck('name')->toArray();
+                                
                                 $groups = static::getPermissionGroups();
                                 foreach ($groups as $groupName => $permissions) {
-                                    $groupState = array_intersect($state, array_keys($permissions));
+                                    $groupState = array_intersect($permissionNames, array_keys($permissions));
                                     $set('permissions_' . $groupName, $groupState);
                                 }
                             }),
@@ -60,7 +63,7 @@ class RoleForm
                                                 ->options($permissions)
                                                 ->live()
                                                 ->dehydrated(false)
-                                                ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                                ->afterStateUpdated(function ($state, $set, $get) {
                                                     // Recolectar todos los permisos seleccionados de todos los grupos
                                                     $allSelected = [];
                                                     $groups = static::getPermissionGroups();
@@ -70,8 +73,11 @@ class RoleForm
                                                         $allSelected = array_merge($allSelected, $selected);
                                                     }
                                                     
+                                                    // Convertir Nombres a IDs para guardar en la relación
+                                                    $ids = Permission::whereIn('name', $allSelected)->pluck('id')->toArray();
+                                                    
                                                     // Actualizar el campo principal
-                                                    $set('permissions', $allSelected);
+                                                    $set('permissions', $ids);
                                                 })
                                                 ->bulkToggleable()
                                         ])
@@ -103,6 +109,7 @@ class RoleForm
             'configuracion' => [
                 'ver_configuracion' => 'Ver configuración',
                 'editar_configuracion' => 'Editar configuración',
+                'acceder_panel' => 'Acceder al panel administrativo',
             ],
             'roles' => [
                 'gestionar_roles' => 'Gestionar roles',
@@ -111,6 +118,11 @@ class RoleForm
             'reportes' => [
                 'ver_reportes' => 'Ver reportes',
                 'exportar_reportes' => 'Exportar reportes',
+            ],
+            'telefonos_bloqueados' => [
+                'ver_telefonos_bloqueados' => 'Ver teléfonos bloqueados',
+                'bloquear_telefonos' => 'Bloquear teléfonos',
+                'desbloquear_telefonos' => 'Desbloquear teléfonos',
             ],
         ];
     }

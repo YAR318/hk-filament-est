@@ -58,7 +58,7 @@ class SocialAuthController extends Controller
     protected function redirectByRole(User $user): \Illuminate\Http\RedirectResponse
     {
         // Usuarios con acceso al panel admin
-        if (in_array($user->role, ['admin', 'supervisor', 'operador', 'super_admin'])) {
+        if ($user->can('acceder_panel')) {
             return redirect('/admin');
         }
 

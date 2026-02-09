@@ -40,20 +40,28 @@ class RolePermissionSeeder extends Seeder
             // Reportes
             'ver_reportes',
             'exportar_reportes',
+
+            // Teléfonos Bloqueados
+            'ver_telefonos_bloqueados',
+            'bloquear_telefonos',
+            'desbloquear_telefonos',
+
+            // Sistema
+            'acceder_panel',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Crear roles y asignar permisos
 
         // ROL: Admin - Control total
-        $adminRole = Role::create(['name' => 'admin']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $adminRole->givePermissionTo(Permission::all());
 
         // ROL: Supervisor - Ver todo, gestionar operadores
-        $supervisorRole = Role::create(['name' => 'supervisor']);
+        $supervisorRole = Role::firstOrCreate(['name' => 'supervisor']);
         $supervisorRole->givePermissionTo([
             'ver_todos_mensajes',
             'responder_mensajes',
@@ -62,13 +70,18 @@ class RolePermissionSeeder extends Seeder
             'ver_reportes',
             'exportar_reportes',
             'ver_configuracion',
+            'ver_telefonos_bloqueados',
+            'bloquear_telefonos',
+            'desbloquear_telefonos',
+            'acceder_panel',
         ]);
 
         // ROL: Operador - Responder mensajes asignados
-        $operadorRole = Role::create(['name' => 'operador']);
+        $operadorRole = Role::firstOrCreate(['name' => 'operador']);
         $operadorRole->givePermissionTo([
             'ver_mensajes',
             'responder_mensajes',
+            'acceder_panel',
         ]);
 
         // Asignar rol admin a usuarios existentes

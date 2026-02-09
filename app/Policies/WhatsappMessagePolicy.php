@@ -11,35 +11,50 @@ class WhatsappMessagePolicy
     use HandlesAuthorization;
 
     /**
-     * Supervisor y admin pueden ver logs de WhatsApp
+     * Verificar si el usuario puede ver la lista de mensajes.
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'supervisor', 'super_admin']);
+        return $user->can('ver_mensajes') || $user->can('ver_todos_mensajes');
     }
 
+    /**
+     * Verificar si el usuario puede ver un mensaje.
+     */
     public function view(User $user, WhatsappMessage $message): bool
     {
-        return in_array($user->role, ['admin', 'supervisor', 'super_admin']);
+        return $user->can('ver_mensajes') || $user->can('ver_todos_mensajes');
     }
 
+    /**
+     * Verificar si el usuario puede crear mensajes (internamente).
+     */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('responder_mensajes');
     }
 
+    /**
+     * Verificar si el usuario puede actualizar un mensaje (responder).
+     */
     public function update(User $user, WhatsappMessage $message): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('responder_mensajes');
     }
 
+    /**
+     * Verificar si el usuario puede eliminar un mensaje.
+     */
     public function delete(User $user, WhatsappMessage $message): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('eliminar_mensajes');
     }
 
+    /**
+     * Verificar si el usuario puede eliminar múltiples mensajes.
+     */
     public function deleteAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'super_admin']);
+        return $user->can('eliminar_mensajes');
     }
 }

@@ -79,7 +79,7 @@ class OtpController extends Controller
         Auth::login($user);
 
         // Redirigir según rol
-        if (in_array($user->role, ['admin', 'supervisor', 'operador', 'super_admin'])) {
+        if ($user->can('acceder_panel')) {
             return redirect('/admin');
         }
 
@@ -137,7 +137,7 @@ class OtpController extends Controller
         Auth::login($user);
 
         // Redirigir según rol
-        if (in_array($user->role, ['admin', 'supervisor', 'operador', 'super_admin'])) {
+        if ($user->can('acceder_panel')) {
             return redirect('/admin');
         }
 
