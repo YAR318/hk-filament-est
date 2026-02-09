@@ -6,6 +6,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
+use Spatie\Permission\Models\Role;
 
 class UserForm
 {
@@ -36,12 +37,7 @@ class UserForm
 
                 Select::make('role')
                     ->label('Tipo de Acceso (Sistema)')
-                    ->options([
-                        'admin' => 'Administrador (Acceso Total)',
-                        'supervisor' => 'Supervisor (Gestión de Agentes)',
-                        'operador' => 'Agente (Atención al Cliente)',
-                        'user' => 'Usuario Cliente (Sin Acceso Panel)',
-                    ])
+                    ->options(fn () => Role::all()->pluck('name', 'name')->toArray() + ['user' => 'Usuario Cliente (Sin Acceso Panel)'])
                     ->required()
                     ->default('user')
                     ->native(false),

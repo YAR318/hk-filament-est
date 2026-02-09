@@ -55,20 +55,20 @@ class RolePermissionSeeder extends Seeder
         // ROL: Supervisor - Ver todo, gestionar operadores
         $supervisorRole = Role::create(['name' => 'supervisor']);
         $supervisorRole->givePermissionTo([
-            'view_all_messages',
-            'reply_messages',
-            'assign_messages',
-            'view_users',
-            'view_reports',
-            'export_reports',
-            'view_settings',
+            'ver_todos_mensajes',
+            'responder_mensajes',
+            'asignar_mensajes',
+            'ver_usuarios',
+            'ver_reportes',
+            'exportar_reportes',
+            'ver_configuracion',
         ]);
 
         // ROL: Operador - Responder mensajes asignados
         $operadorRole = Role::create(['name' => 'operador']);
         $operadorRole->givePermissionTo([
-            'view_messages',
-            'reply_messages',
+            'ver_mensajes',
+            'responder_mensajes',
         ]);
 
         // Asignar rol admin a usuarios existentes
