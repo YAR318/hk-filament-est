@@ -22,13 +22,14 @@
         </div>
 
         @if (filament()->hasRegistration())
-            <x-slot name="subheading">
-                {{ __('filament-panels::pages/auth/login.actions.register.before') }}
-                {{ $this->registerAction }}
-            </x-slot>
+        <x-slot name="subheading">
+            {{ __('filament-panels::pages/auth/login.actions.register.before') }}
+            {{ $this->registerAction }}
+        </x-slot>
         @endif
 
-        {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE, scopes: $this->getRenderHookScopes()) }}
+        {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
+        scopes: $this->getRenderHookScopes()) }}
 
         <x-filament-panels::form id="form" wire:submit="authenticate">
             {{ $this->form }}
@@ -37,12 +38,13 @@
                 :full-width="$this->hasFullWidthFormActions()" />
         </x-filament-panels::form>
 
-        {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, scopes: $this->getRenderHookScopes()) }}
+        {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+        scopes: $this->getRenderHookScopes()) }}
 
         <!-- Enlaces adicionales -->
         <div class="mt-6 space-y-4">
             <div class="flex items-center justify-between text-sm">
-                <a href="http://hk_autenticacion_est.test/register"
+                <a href="{{ env('AUTH_SERVER_URL', 'http://localhost:8001') }}/register"
                     class="text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -50,7 +52,7 @@
                     </svg>
                     Crear cuenta
                 </a>
-                <a href="http://hk_autenticacion_est.test/forgot-password"
+                <a href="{{ env('AUTH_SERVER_URL', 'http://localhost:8001') }}/forgot-password"
                     class="text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

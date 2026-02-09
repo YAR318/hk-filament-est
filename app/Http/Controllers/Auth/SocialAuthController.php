@@ -46,7 +46,8 @@ class SocialAuthController extends Controller
             // Redirigir según el rol del usuario
             return $this->redirectByRole($user);
 
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             return redirect('/')->with('error', 'Error al autenticar con ' . ucfirst($provider));
         }
     }
@@ -62,6 +63,6 @@ class SocialAuthController extends Controller
         }
 
         // Usuarios comunes van a su perfil en el otro sistema
-        return redirect()->away('https://hk_autenticacion_est.test/profile');
+        return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
     }
 }

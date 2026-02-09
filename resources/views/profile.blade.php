@@ -179,15 +179,15 @@
             </div>
 
             @if($user->email_verified_at)
-                <div class="info-item">
-                    <span class="info-label">Email verificado</span>
-                    <span class="info-value" style="color: #4ade80;">✓ Verificado</span>
-                </div>
+            <div class="info-item">
+                <span class="info-label">Email verificado</span>
+                <span class="info-value" style="color: #4ade80;">✓ Verificado</span>
+            </div>
             @endif
         </div>
 
         <div class="info-section" style="margin-top: -16px; margin-bottom: 24px; padding: 16px;">
-            <a href="https://hk_autenticacion_est.test/profile"
+            <a href="{{ env('AUTH_SERVER_URL', 'http://localhost:8001') }}/profile"
                 style="display: flex; align-items: center; justify-content: center; gap: 10px; color: #fff; text-decoration: none; font-size: 14px; font-weight: 500;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">

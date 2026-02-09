@@ -25,10 +25,11 @@ Route::get('/', function () {
 // Perfil para usuarios comunes (Redirección externa)
 Route::middleware('auth')->group(function () {
     Route::get('/profile', function () {
-        return redirect()->away('https://hk_autenticacion_est.test/profile');
-    })->name('profile');
-    Route::post('/profile/logout', [ProfileController::class, 'logout'])->name('profile.logout');
-});
+            return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
+        }
+        )->name('profile');
+        Route::post('/profile/logout', [ProfileController::class , 'logout'])->name('profile.logout');
+    });
 
 // Login con email (redirige a Filament)
 Route::get('/login/email', function () {
@@ -36,15 +37,15 @@ Route::get('/login/email', function () {
 })->name('login.email');
 
 // OAuth Routes
-Route::get('/auth/{provider}', [SocialAuthController::class, 'redirectToProvider'])
+Route::get('/auth/{provider}', [SocialAuthController::class , 'redirectToProvider'])
     ->name('auth.redirect');
 
-Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])
+Route::get('/auth/{provider}/callback', [SocialAuthController::class , 'handleProviderCallback'])
     ->name('auth.callback');
 
 // OTP Routes
-Route::post('/otp/send', [OtpController::class, 'sendOtp'])->name('otp.send');
-Route::get('/otp/verify', [OtpController::class, 'showVerifyForm'])->name('otp.verify.form');
-Route::post('/otp/verify', [OtpController::class, 'verifyOtp'])->name('otp.verify');
-Route::get('/otp/password', [OtpController::class, 'showPasswordForm'])->name('otp.password.form');
-Route::post('/otp/password', [OtpController::class, 'updatePassword'])->name('otp.password.update');
+Route::post('/otp/send', [OtpController::class , 'sendOtp'])->name('otp.send');
+Route::get('/otp/verify', [OtpController::class , 'showVerifyForm'])->name('otp.verify.form');
+Route::post('/otp/verify', [OtpController::class , 'verifyOtp'])->name('otp.verify');
+Route::get('/otp/password', [OtpController::class , 'showPasswordForm'])->name('otp.password.form');
+Route::post('/otp/password', [OtpController::class , 'updatePassword'])->name('otp.password.update');

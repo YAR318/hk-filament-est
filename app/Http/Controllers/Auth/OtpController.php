@@ -84,7 +84,7 @@ class OtpController extends Controller
         }
 
         // Redirigir perfil al otro sistema
-        return redirect()->away('https://hk_autenticacion_est.test/profile');
+        return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
     }
 
     /**
@@ -141,6 +141,6 @@ class OtpController extends Controller
             return redirect('/admin');
         }
 
-        return redirect()->away('https://hk_autenticacion_est.test/profile');
+        return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
     }
 }
