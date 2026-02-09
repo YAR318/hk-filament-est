@@ -33,7 +33,7 @@ class BlockedPhoneResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Configuración';
+        return 'Whatsapp';
     }
 
     public static function getNavigationSort(): ?int

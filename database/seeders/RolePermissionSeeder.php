@@ -48,6 +48,7 @@ class RolePermissionSeeder extends Seeder
 
             // Sistema
             'acceder_panel',
+            'ver_guia_whatsapp',
         ];
 
         foreach ($permissions as $permission) {
@@ -74,6 +75,7 @@ class RolePermissionSeeder extends Seeder
             'bloquear_telefonos',
             'desbloquear_telefonos',
             'acceder_panel',
+            'ver_guia_whatsapp',
         ]);
 
         // ROL: Operador - Responder mensajes asignados

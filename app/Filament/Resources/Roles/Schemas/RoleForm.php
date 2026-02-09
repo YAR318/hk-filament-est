@@ -110,6 +110,7 @@ class RoleForm
                 'ver_configuracion' => 'Ver configuración',
                 'editar_configuracion' => 'Editar configuración',
                 'acceder_panel' => 'Acceder al panel administrativo',
+                'ver_guia_whatsapp' => 'Ver guía de conexión Whatsapp',
             ],
             'roles' => [
                 'gestionar_roles' => 'Gestionar roles',
