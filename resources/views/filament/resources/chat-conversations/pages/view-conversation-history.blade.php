@@ -155,11 +155,11 @@
             <div style="display: flex; align-items: center;">
                 <div class="relative">
                     @if($this->record->profile_pic_url)
-                        <img src="{{ $this->record->profile_pic_url }}" class="avatar-circle" style="object-fit: cover;">
+                    <img src="{{ $this->record->profile_pic_url }}" class="avatar-circle" style="object-fit: cover;">
                     @else
-                        <div class="avatar-circle">
-                            {{ substr($this->record->contact_name ?? $this->record->phone_number, 0, 1) }}
-                        </div>
+                    <div class="avatar-circle">
+                        {{ substr($this->record->contact_name ?? $this->record->phone_number, 0, 1) }}
+                    </div>
                     @endif
                 </div>
                 <div>
@@ -180,26 +180,26 @@
         {{-- Messages --}}
         <div class="chat-messages" id="chat-messages-container" wire:poll.3s>
             @forelse($this->getMessages() as $message)
-                <div class="message-row {{ $message->role === 'user' ? 'user' : 'assistant' }}">
-                    <div class="message-bubble {{ $message->role === 'user' ? 'user' : 'assistant' }}">
-                        <div style="white-space: pre-wrap;">{{ $message->content }}</div>
-                        <span class="message-time">
-                            {{ $message->sent_at->format('h:i A') }}
-                            @if($message->role === 'assistant') ✓ @endif
-                        </span>
-                    </div>
+            <div class="message-row {{ $message->role === 'user' ? 'user' : 'assistant' }}">
+                <div class="message-bubble {{ $message->role === 'user' ? 'user' : 'assistant' }}">
+                    <div style="white-space: pre-wrap;">{{ $message->content }}</div>
+                    <span class="message-time">
+                        {{ $message->sent_at->format('h:i A') }}
+                        @if($message->role === 'assistant') ✓ @endif
+                    </span>
                 </div>
+            </div>
             @empty
-                <div style="text-align: center; margin-top: 4rem; opacity: 0.5;">
-                    <svg style="width: 4rem; height: 4rem; margin: 0 auto; color: #9ca3af;" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
-                        </path>
-                    </svg>
-                    <h3 style="margin-top: 1rem; font-weight: 600;">No hay mensajes</h3>
-                    <p>La conversación comenzará cuando envíes o recibas el primer mensaje.</p>
-                </div>
+            <div style="text-align: center; margin-top: 4rem; opacity: 0.5;">
+                <svg style="width: 4rem; height: 4rem; margin: 0 auto; color: #9ca3af;" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
+                    </path>
+                </svg>
+                <h3 style="margin-top: 1rem; font-weight: 600;">No hay mensajes</h3>
+                <p>La conversación comenzará cuando envíes o recibas el primer mensaje.</p>
+            </div>
             @endforelse
 
             {{-- Script inline para mantener scroll abajo tras actualización Livewire --}}
@@ -220,11 +220,12 @@
         {{-- Footer (Simple) --}}
         <div style="padding: 1rem; background-color: inherit; border-top: 1px solid inherit;" class="chat-header">
             <div style="display: flex; gap: 0.5rem; width: 100%;">
-                <input type="text" placeholder="Envío manual próximamente..." disabled
+                <input type="text" wire:model="newMessage" wire:keydown.enter="sendMessage"
+                    placeholder="Escribe un mensaje..."
                     style="flex: 1; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; background-color: #f9fafb;"
                     class="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <button disabled
-                    style="padding: 0.5rem 1.5rem; background-color: #e5e7eb; color: #6b7280; border-radius: 0.5rem; border: none; font-weight: 600;">
+                <button wire:click="sendMessage"
+                    style="padding: 0.5rem 1.5rem; background-color: #3b82f6; color: white; border-radius: 0.5rem; border: none; font-weight: 600; cursor: pointer;">
                     Enviar
                 </button>
             </div>

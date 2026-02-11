@@ -52,10 +52,18 @@ class ChatHistoryService
             return ['process' => false, 'reason' => 'Número bloqueado'];
         }
 
-        // 6. Verificar si la conversación está bloqueada
+        // 6. Verificar estado de la conversación y configuración del bot
         $conversation = ChatConversation::where('phone_number', $phoneNumber)->first();
-        if ($conversation && $conversation->status === 'blocked') {
-            return ['process' => false, 'reason' => 'Conversación bloqueada'];
+
+        if ($conversation) {
+            if ($conversation->status === 'blocked') {
+                return ['process' => false, 'reason' => 'Conversación bloqueada'];
+            }
+
+            // Verificar si el bot está activo (false si hay operador asignado o desactivado manual)
+            if (!$conversation->is_bot_active) {
+                return ['process' => false, 'reason' => 'Bot desactivado'];
+            }
         }
 
         return ['process' => true, 'reason' => null];
@@ -66,12 +74,12 @@ class ChatHistoryService
     public function getOrCreateConversation(string $phoneNumber, ?string $contactName = null): ChatConversation
     {
         return ChatConversation::firstOrCreate(
-            ['phone_number' => $phoneNumber],
-            [
-                'contact_name' => $contactName,
-                'status' => 'active',
-                'last_message_at' => now(),
-            ]
+        ['phone_number' => $phoneNumber],
+        [
+            'contact_name' => $contactName,
+            'status' => 'active',
+            'last_message_at' => now(),
+        ]
         );
     }
 
@@ -83,7 +91,8 @@ class ChatHistoryService
         string $content,
         ?int $whatsappMessageId = null,
         ?string $contactName = null
-    ): ChatMessage {
+        ): ChatMessage
+    {
         $conversation = $this->getOrCreateConversation($phoneNumber, $contactName);
 
         // Actualizar nombre si se proporciona y la conversación no tiene uno
@@ -112,7 +121,8 @@ class ChatHistoryService
         string $phoneNumber,
         string $content,
         ?array $metadata = null
-    ): ChatMessage {
+        ): ChatMessage
+    {
         $conversation = $this->getOrCreateConversation($phoneNumber);
 
         $message = ChatMessage::create([
@@ -134,7 +144,8 @@ class ChatHistoryService
     public function addSystemMessage(
         string $phoneNumber,
         string $content
-    ): ChatMessage {
+        ): ChatMessage
+    {
         $conversation = $this->getOrCreateConversation($phoneNumber);
 
         return ChatMessage::create([
@@ -166,8 +177,8 @@ class ChatHistoryService
     {
         return ChatConversation::with([
             'messages' => function ($query) {
-                $query->latest('sent_at')->limit(50);
-            }
+            $query->latest('sent_at')->limit(50);
+        }
         ])->where('phone_number', $phoneNumber)->first();
     }
 

@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\OperatorResource\Pages;
 use App\Models\Operator;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -18,6 +20,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
 
 class OperatorResource extends Resource
 {
@@ -44,7 +47,7 @@ class OperatorResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Información Personal')
+                Section::make('Información Personal')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->label('Nombre Completo')
@@ -71,15 +74,13 @@ class OperatorResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Configuración del Operador')
+                Section::make('Configuración del Operador')
                     ->schema([
                         Forms\Components\Select::make('role')
                             ->label('Rol')
-                            ->options([
-                                'admin' => 'Administrador',
-                                'supervisor' => 'Supervisor',
-                                'operador' => 'Operador'
-                            ])
+                            ->options(
+                                Role::where('name', '!=', 'admin')->pluck('name', 'name')
+                            )
                             ->default('operador')
                             ->required()
                             ->helperText('Define los permisos y responsabilidades del operador'),
@@ -105,14 +106,14 @@ class OperatorResource extends Resource
                             ->label('Máximo Chats Simultáneos')
                             ->numeric()
                             ->default(5)
-                            ->min(1)
-                            ->max(20)
+                            ->minValue(1)
+                            ->maxValue(20)
                             ->required()
                             ->helperText('Límite de conversaciones que puede manejar simultáneamente'),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Información del Sistema')
+                Section::make('Información del Sistema')
                     ->schema([
                         Forms\Components\TextInput::make('current_chats_count')
                             ->label('Chats Activos Actuales')

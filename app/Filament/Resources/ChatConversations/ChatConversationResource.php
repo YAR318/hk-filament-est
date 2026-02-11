@@ -14,6 +14,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Filament\Tables;
+use Filament\Actions;
 
 class ChatConversationResource extends Resource
 {
@@ -58,7 +60,43 @@ class ChatConversationResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return ChatConversationsTable::configure($table);
+        return ChatConversationsTable::configure($table)
+            ->actions([
+            Actions\EditAction::make(),
+            Actions\Action::make('assign_operator')
+            ->label('Asignar Operador')
+            ->icon('heroicon-o-user-plus')
+            ->form([
+                \Filament\Forms\Components\Select::make('assigned_to')
+                ->label('Operador')
+                ->options(\App\Models\Operator::with('user')->get()->pluck('user.name', 'id'))
+                ->required(),
+            ])
+            ->action(function (ChatConversation $record, array $data) {
+            $record->update([
+                    'assigned_to' => $data['assigned_to'],
+                    'is_bot_active' => false, // Desactivar bot al asignar
+                ]);
+
+            \Filament\Notifications\Notification::make()
+                ->title('Operador asignado')
+                ->body('El bot ha sido desactivado para esta conversación.')
+                ->success()
+                ->send();
+        }),
+            Actions\Action::make('toggle_bot')
+            ->label(fn(ChatConversation $record) => $record->is_bot_active ? 'Desactivar Bot' : 'Activar Bot')
+            ->icon(fn(ChatConversation $record) => $record->is_bot_active ? 'heroicon-o-stop' : 'heroicon-o-play')
+            ->color(fn(ChatConversation $record) => $record->is_bot_active ? 'danger' : 'success')
+            ->action(function (ChatConversation $record) {
+            $record->update(['is_bot_active' => !$record->is_bot_active]);
+
+            \Filament\Notifications\Notification::make()
+                ->title($record->is_bot_active ? 'Bot activado' : 'Bot desactivado')
+                ->success()
+                ->send();
+        }),
+        ]);
     }
 
     public static function getRelations(): array

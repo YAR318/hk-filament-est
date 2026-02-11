@@ -26,6 +26,9 @@ Route::post('/chat/process-message', [\App\Http\Controllers\Api\ChatHistoryContr
 // Verificar si un número está bloqueado
 Route::get('/whatsapp/check-block/{phone}', [\App\Http\Controllers\Api\BlockedPhoneController::class , 'check']);
 
+// Verificar si el bot está activo para un número
+Route::get('/bot/status/{phone}', [\App\Http\Controllers\Api\BotStatusController::class , 'check']);
+
 // Rutas para operadores
 Route::get('/operators/check/{phoneNumber}', [OperatorController::class , 'check']);
 Route::post('/operators/update-last-message', [OperatorController::class , 'updateLastMessage']);
