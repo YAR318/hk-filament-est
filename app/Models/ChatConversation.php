@@ -21,6 +21,7 @@ class ChatConversation extends Model
         'response_time_seconds',
         'escalated_at',
         'resolved_at',
+        'is_bot_active',
     ];
 
     protected $casts = [
@@ -29,16 +30,17 @@ class ChatConversation extends Model
         'last_human_response_at' => 'datetime',
         'escalated_at' => 'datetime',
         'resolved_at' => 'datetime',
+        'is_bot_active' => 'boolean',
     ];
 
     public function messages(): HasMany
     {
-        return $this->hasMany(ChatMessage::class, 'conversation_id');
+        return $this->hasMany(ChatMessage::class , 'conversation_id');
     }
 
     public function assignedOperator(): BelongsTo
     {
-        return $this->belongsTo(Operator::class, 'assigned_to');
+        return $this->belongsTo(Operator::class , 'assigned_to');
     }
 
     public function latestMessages(int $limit = 10): HasMany
@@ -57,11 +59,11 @@ class ChatConversation extends Model
             ->get()
             ->reverse()
             ->map(function ($message) {
-                return [
-                    'role' => $message->role,
-                    'content' => $message->content,
-                ];
-            })
+            return [
+                'role' => $message->role,
+                'content' => $message->content,
+            ];
+        })
             ->toArray();
     }
 }

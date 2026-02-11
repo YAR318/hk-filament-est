@@ -2,10 +2,6 @@
 
 namespace App\Filament\Resources\ChatConversations\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
@@ -44,12 +40,16 @@ class ChatConversationsTable
                         'active' => 'success',
                         'archived' => 'warning',
                         'blocked' => 'danger',
+                        'en_proceso' => 'info',
+                        'resuelto' => 'gray',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'active' => 'Activa',
                         'archived' => 'Archivada',
                         'blocked' => 'Bloqueada',
+                        'en_proceso' => 'En Proceso',
+                        'resuelto' => 'Resuelto',
                         default => $state,
                     })
                     ->sortable(),
@@ -60,12 +60,19 @@ class ChatConversationsTable
                     ->sortable()
                     ->since()
                     ->description(fn ($record) => $record->last_message_at?->format('d/m/Y H:i')),
-                
-                TextColumn::make('created_at')
-                    ->label('Creada')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('assignedOperator.name')
+                    ->label('Operador')
+                    ->default('Sin asignar')
+                    ->badge()
+                    ->color(fn ($record) => $record->assigned_to ? 'success' : 'gray')
+                    ->sortable(),
+
+                TextColumn::make('is_bot_active')
+                    ->label('Bot')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state ? 'Activo' : 'Inactivo')
+                    ->color(fn ($state) => $state ? 'success' : 'danger'),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -74,20 +81,11 @@ class ChatConversationsTable
                         'active' => 'Activa',
                         'archived' => 'Archivada',
                         'blocked' => 'Bloqueada',
+                        'en_proceso' => 'En Proceso',
+                        'resuelto' => 'Resuelto',
                     ]),
             ])
-            ->recordActions([
-                Action::make('view_history')
-                    ->label('Ver historial')
-                    ->icon('heroicon-o-chat-bubble-left-right')
-                    ->url(fn ($record) => "/admin/chat-conversations/{$record->id}/history"),
-                EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ])
+            ->recordUrl(fn ($record) => "/admin/chat-conversations/{$record->id}/history")
             ->defaultSort('last_message_at', 'desc');
     }
 }

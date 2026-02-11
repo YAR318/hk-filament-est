@@ -56,6 +56,18 @@ class ChatHistoryService
         $conversation = ChatConversation::where('phone_number', $phoneNumber)->first();
 
         if ($conversation) {
+            // Si la conversación fue resuelta y llega un nuevo mensaje, reabrir
+            if ($conversation->status === 'resuelto') {
+                $conversation->update([
+                    'status' => 'active',
+                    'assigned_to' => null,
+                    'is_bot_active' => true,
+                    'resolved_at' => null,
+                ]);
+                // Continuar procesando con el bot
+                return ['process' => true, 'reason' => null];
+            }
+
             if ($conversation->status === 'blocked') {
                 return ['process' => false, 'reason' => 'Conversación bloqueada'];
             }

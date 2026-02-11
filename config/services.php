@@ -48,8 +48,9 @@ return [
     ],
 
     'evolution' => [
-        'base_url' => env('EVOLUTION_API_URL', 'http://evolution-api:8080'),
+        'base_url' => env('EVOLUTION_BASE_URL', 'http://evolution_api:8080'),
         'api_key' => env('EVOLUTION_API_KEY', 'evolution123'),
+        'instance' => env('EVOLUTION_INSTANCE', 'HunabkuBot'),
     ],
 
 ];

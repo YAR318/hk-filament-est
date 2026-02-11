@@ -37,7 +37,7 @@ class EvolutionService
             // Evolution API gestiona instancias. Asumiremos una instancia por defecto o global.
             // Si no hay instancia, intentaremos usar el endpoint genérico si existe o 'default'.
 
-            $instanceName = 'HunabKu'; // Nombre de instancia probable o configurable.
+            $instanceName = config('services.evolution.instance', 'HunabkuBot');
 
             $url = "{$this->baseUrl}/message/sendText/{$instanceName}";
 

@@ -3,9 +3,10 @@
 namespace App\Filament\Resources\ChatConversations\Pages;
 
 use App\Filament\Resources\ChatConversations\ChatConversationResource;
+use App\Models\ChatMessage;
+use App\Models\Operator;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
-use App\Models\ChatMessage;
 
 class ViewConversationHistory extends Page
 {
@@ -13,9 +14,12 @@ class ViewConversationHistory extends Page
 
     protected static string $resource = ChatConversationResource::class;
 
-    protected static ?string $title = 'Historial de Conversación';
+    protected static ?string $title = 'Detalle de Conversación';
 
     protected string $view = 'filament.resources.chat-conversations.pages.view-conversation-history';
+
+    public string $newMessage = '';
+    public ?int $selectedOperator = null;
 
     public function mount(int|string $record): void
     {
@@ -29,10 +33,194 @@ class ViewConversationHistory extends Page
             ->get();
     }
 
-    public string $newMessage = '';
+    /**
+     * Check if the current user can send messages in this conversation
+     */
+    public function canSendMessages(): bool
+    {
+        $user = auth()->user();
 
+        // Admin and Supervisor can always send
+        if ($user->can('ver_todas_conversaciones')) {
+            return true;
+        }
+
+        // Operator can only send if the chat is assigned to them
+        $operator = Operator::where('email', $user->email)->first();
+        if ($operator && $this->record->assigned_to === $operator->id) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if operator can take this chat
+     */
+    public function canTakeChat(): bool
+    {
+        $user = auth()->user();
+        return $user->can('tomar_conversaciones') && is_null($this->record->assigned_to);
+    }
+
+    /**
+     * Check if user can close this chat
+     */
+    public function canCloseChat(): bool
+    {
+        $user = auth()->user();
+
+        if ($user->can('ver_todas_conversaciones')) {
+            return true;
+        }
+
+        if ($user->can('cerrar_conversaciones')) {
+            $operator = Operator::where('email', $user->email)->first();
+            return $operator && $this->record->assigned_to === $operator->id;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user is admin/supervisor
+     */
+    public function isManager(): bool
+    {
+        return auth()->user()->can('ver_todas_conversaciones');
+    }
+
+    /**
+     * Operator takes the chat
+     */
+    public function takeChat(): void
+    {
+        $user = auth()->user();
+
+        if (!$user->can('tomar_conversaciones')) {
+            return;
+        }
+
+        $operator = Operator::where('email', $user->email)->first();
+
+        if (!$operator) {
+            \Filament\Notifications\Notification::make()
+                ->title('Error')
+                ->body('No se encontró tu perfil de operador.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $this->record->update([
+            'assigned_to' => $operator->id,
+            'is_bot_active' => false,
+            'status' => 'en_proceso',
+        ]);
+
+        $this->record->refresh();
+
+        \Filament\Notifications\Notification::make()
+            ->title('Chat tomado')
+            ->body('Ahora eres responsable de esta conversación. Puedes empezar a responder.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Close/resolve the chat
+     */
+    public function closeChat(): void
+    {
+        if (!$this->canCloseChat()) {
+            return;
+        }
+
+        $this->record->update([
+            'status' => 'resuelto',
+            'assigned_to' => null,
+            'is_bot_active' => true,
+            'resolved_at' => now(),
+        ]);
+
+        $this->record->refresh();
+
+        \Filament\Notifications\Notification::make()
+            ->title('Chat cerrado')
+            ->body('La conversación fue resuelta y el bot se reactivó.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Assign an operator (supervisor/admin only)
+     */
+    public function assignOperator(): void
+    {
+        $user = auth()->user();
+
+        if (!$user->can('asignar_conversaciones')) {
+            return;
+        }
+
+        if (!$this->selectedOperator) {
+            \Filament\Notifications\Notification::make()
+                ->title('Error')
+                ->body('Selecciona un operador.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $this->record->update([
+            'assigned_to' => $this->selectedOperator,
+            'is_bot_active' => false,
+            'status' => 'en_proceso',
+        ]);
+
+        $this->record->refresh();
+
+        \Filament\Notifications\Notification::make()
+            ->title('Operador asignado')
+            ->body('El bot ha sido desactivado para esta conversación.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Toggle bot on/off (supervisor/admin only)
+     */
+    public function toggleBot(): void
+    {
+        $user = auth()->user();
+
+        if (!$user->can('gestionar_bot')) {
+            return;
+        }
+
+        $this->record->update(['is_bot_active' => !$this->record->is_bot_active]);
+        $this->record->refresh();
+
+        \Filament\Notifications\Notification::make()
+            ->title($this->record->is_bot_active ? 'Bot activado' : 'Bot desactivado')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Send a message via WhatsApp
+     */
     public function sendMessage(\App\Services\EvolutionService $whatsappService): void
     {
+        if (!$this->canSendMessages()) {
+            \Filament\Notifications\Notification::make()
+                ->title('Sin permiso')
+                ->body('No tienes permiso para enviar mensajes en esta conversación.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         $this->newMessage = trim($this->newMessage);
 
         if (empty($this->newMessage)) {
@@ -40,20 +228,16 @@ class ViewConversationHistory extends Page
         }
 
         try {
-            // 1. Enviar a través de la API
             $result = $whatsappService->sendMessage($this->record->phone_number, $this->newMessage);
 
             if ($result) {
-                // 2. Guardar en base de datos local
                 ChatMessage::create([
                     'conversation_id' => $this->record->id,
                     'role' => 'assistant',
                     'content' => $this->newMessage,
                     'sent_at' => now(),
-                    // 'whatsapp_message_id' => $result['key']['id'] ?? null, // Si la API devuelve ID
                 ]);
 
-                // 3. Actualizar timestamp de conversación
                 $this->record->update([
                     'last_message_at' => now(),
                     'last_human_response_at' => now(),
@@ -61,7 +245,6 @@ class ViewConversationHistory extends Page
 
                 $this->newMessage = '';
 
-                // Notificar éxito
                 \Filament\Notifications\Notification::make()
                     ->title('Mensaje enviado')
                     ->success()
@@ -87,5 +270,18 @@ class ViewConversationHistory extends Page
     public function getHeading(): string
     {
         return 'Conversación con ' . ($this->record->contact_name ?? $this->record->phone_number);
+    }
+
+    /**
+     * Get available operators for assignment dropdown
+     */
+    public function getOperatorOptions(): array
+    {
+        return Operator::with('user')
+            ->where('is_active', true)
+            ->get()
+            ->pluck('user.name', 'id')
+            ->filter()
+            ->toArray();
     }
 }

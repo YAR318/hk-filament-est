@@ -46,6 +46,14 @@ class RolePermissionSeeder extends Seeder
             'bloquear_telefonos',
             'desbloquear_telefonos',
 
+            // Conversaciones / Chat
+            'ver_conversaciones',
+            'ver_todas_conversaciones',
+            'asignar_conversaciones',
+            'gestionar_bot',
+            'tomar_conversaciones',
+            'cerrar_conversaciones',
+
             // Sistema
             'acceder_panel',
             'ver_guia_whatsapp',
@@ -74,6 +82,10 @@ class RolePermissionSeeder extends Seeder
             'ver_telefonos_bloqueados',
             'bloquear_telefonos',
             'desbloquear_telefonos',
+            'ver_todas_conversaciones',
+            'asignar_conversaciones',
+            'gestionar_bot',
+            'cerrar_conversaciones',
             'acceder_panel',
             'ver_guia_whatsapp',
         ]);
@@ -83,6 +95,9 @@ class RolePermissionSeeder extends Seeder
         $operadorRole->givePermissionTo([
             'ver_mensajes',
             'responder_mensajes',
+            'ver_conversaciones',
+            'tomar_conversaciones',
+            'cerrar_conversaciones',
             'acceder_panel',
         ]);
 
