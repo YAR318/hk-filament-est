@@ -55,14 +55,5 @@ El bot usa **n8n** (en Docker) para orquestar todo.
 - `app/Http/Controllers/Auth/`: Lo del login con Google.
 - `routes/api.php`: Endpoints para que n8n guarde los mensajes.
 
-## Cosas pendientes / A tener en cuenta de momento
-
-- El `.env` no se sube, así que pide las credenciales si no las tienes.
-- Si modificas el CSS del chat, es mejor hacerlo inline o asegurar que compilas los assets, porque Tailwind se me estuvo poniendo rarote y de momento lo deje con las clases dinámicas.
-- Para limpiar la base de datos de pruebas:
-  ```bash
-  php artisan migrate:fresh --seed
-  ```
-
 ---
 *Cualquier duda, el becario de la utj estuvo aqui.*
