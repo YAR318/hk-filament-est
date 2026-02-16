@@ -410,7 +410,7 @@
                 <div class="info-row">
                     <span class="sidebar-label">Bot</span>
                     <span class="badge {{ $this->record->is_bot_active ? 'badge-green' : 'badge-red' }}">
-                        {{ $this->record->is_bot_active ? '🤖 Activo' : '🔇 Inactivo' }}
+                        {{ $this->record->is_bot_active ? 'Activo' : 'Inactivo' }}
                     </span>
                 </div>
                 <div class="info-row">
@@ -437,7 +437,7 @@
                 @if($this->canTakeChat())
                 <button wire:click="takeChat" class="action-btn btn-primary"
                     wire:confirm="¿Tomar esta conversación? Serás asignado como operador y el bot se desactivará.">
-                    ✋ Tomar Chat
+                    Tomar Chat
                 </button>
                 @endif
 
@@ -445,7 +445,7 @@
                 @if($this->canCloseChat())
                 <button wire:click="closeChat" class="action-btn btn-warning"
                     wire:confirm="¿Cerrar esta conversación? Se marcará como resuelta y el bot se reactivará.">
-                    ✅ Cerrar Chat
+                    Cerrar Chat
                 </button>
                 @endif
 
@@ -460,18 +460,18 @@
                         @endforeach
                     </select>
                     <button wire:click="assignOperator" class="action-btn btn-primary">
-                        👤 Asignar Operador
+                        Asignar Operador
                     </button>
                 </div>
 
                 {{-- Toggle Bot --}}
                 @if($this->record->is_bot_active)
                 <button wire:click="toggleBot" class="action-btn btn-danger">
-                    ⏹️ Desactivar Bot
+                    Desactivar Bot
                 </button>
                 @else
                 <button wire:click="toggleBot" class="action-btn btn-success">
-                    ▶️ Activar Bot
+                    Activar Bot
                 </button>
                 @endif
                 @endif
@@ -501,7 +501,7 @@
                     @elseif($this->record->status === 'resuelto')
                     <span class="badge badge-gray">Resuelto</span>
                     @elseif($this->record->is_bot_active)
-                    <span class="badge badge-green">🤖 Bot respondiendo</span>
+                    <span class="badge badge-green">Bot respondiendo</span>
                     @endif
                 </div>
             </div>
@@ -536,13 +536,13 @@
             {{-- Footer --}}
             @if($this->record->status === 'resuelto')
             <div class="chat-closed-banner">
-                ✅ Esta conversación fue cerrada. El bot responderá automáticamente si el usuario envía un nuevo mensaje.
+                Esta conversación fue cerrada. El bot responderá automáticamente si el usuario envía un nuevo mensaje.
             </div>
             @elseif($this->canSendMessages())
             <div class="chat-footer">
                 <div class="chat-input-group">
                     <input type="text" wire:model="newMessage" wire:keydown.enter="sendMessage"
-                        placeholder="Escribe un mensaje..." class="chat-input">
+                        placeholder="Escribe un mensaje..." class="chat-input" maxlength="4096">
                     <button wire:click="sendMessage" class="send-btn">
                         Enviar
                     </button>
@@ -550,18 +550,19 @@
             </div>
             @else
             <div class="chat-closed-banner" style="background-color: #dbeafe; color: #1e40af;">
-                ℹ️ Toma esta conversación para poder enviar mensajes.
+                Toma esta conversación para poder enviar mensajes.
             </div>
             @endif
         </div>
     </div>
 
     <script>
-        function scrollToBottom() {            Div = document.getElementById("chat-messages-container");
-                   Div.scrollTop = objDiv.scrollHeight;
+        function scrollToBottom() {
+            var objDiv = document.getElementById("chat-messages-container");
+            if (objDiv) objDiv.scrollTop = objDiv.scrollHeight;
         }
         window.addEventListener('load', scrollToBottom);
-                  istener("livewire:navigated", scrollToBottom);
-             ventvewire:morph.updated"ttom);
+        document.addEventListener('livewire:navigated', scrollToBottom);
+        document.addEventListener('livewire:morph.updated', scrollToBottom);
     </script>
 </x-filament-panels::page>

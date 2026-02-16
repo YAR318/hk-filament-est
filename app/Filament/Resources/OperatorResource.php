@@ -53,7 +53,8 @@ class OperatorResource extends Resource
                             ->label('Nombre Completo')
                             ->required()
                             ->maxLength(255)
-                            ->helperText('Nombre completo del operador como aparecerá en el sistema'),
+                            ->regex('/^[\pL\s\-\'\.]+ $/u')
+                            ->helperText('Solo letras, espacios y guiones'),
 
                         Forms\Components\TextInput::make('email')
                             ->label('Correo Electrónico')
@@ -69,8 +70,8 @@ class OperatorResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->maxLength(20)
                             ->placeholder('5217531672288')
-                            ->helperText('Número de WhatsApp del operador (formato: código país + número)')
-                            ->rule('regex:/^[0-9]{10,15}$/'),
+                            ->helperText('Formato E.164: código de país + número, sin + ni espacios')
+                            ->rule('regex:/^\+?[1-9]\d{7,14}$/'),
                     ])
                     ->columns(2),
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ChatConversations\Pages;
 
 use App\Filament\Resources\ChatConversations\ChatConversationResource;
+use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use App\Models\Operator;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
@@ -108,6 +109,20 @@ class ViewConversationHistory extends Page
                 ->title('Error')
                 ->body('No se encontró tu perfil de operador.')
                 ->danger()
+                ->send();
+            return;
+        }
+
+        // Validar max_concurrent_chats
+        $currentChats = ChatConversation::where('assigned_to', $operator->id)
+            ->where('status', 'en_proceso')
+            ->count();
+
+        if ($currentChats >= $operator->max_concurrent_chats) {
+            \Filament\Notifications\Notification::make()
+                ->title('Límite alcanzado')
+                ->body("Ya tienes {$currentChats} conversaciones activas. Tu límite es {$operator->max_concurrent_chats}.")
+                ->warning()
                 ->send();
             return;
         }
@@ -221,9 +236,19 @@ class ViewConversationHistory extends Page
             return;
         }
 
-        $this->newMessage = trim($this->newMessage);
+        $this->newMessage = strip_tags(trim($this->newMessage));
 
         if (empty($this->newMessage)) {
+            return;
+        }
+
+        // Protección anti-pegado masivo
+        if (mb_strlen($this->newMessage) > 4096) {
+            \Filament\Notifications\Notification::make()
+                ->title('Mensaje demasiado largo')
+                ->body('El mensaje no puede exceder 4096 caracteres.')
+                ->warning()
+                ->send();
             return;
         }
 
