@@ -77,6 +77,7 @@ class OtpController extends Controller
 
         $user = User::where('email', $email)->first();
         Auth::login($user);
+        session()->regenerate(); // Invalida sesiones anteriores
 
         // Redirigir según rol
         if ($user->can('acceder_panel')) {
@@ -135,6 +136,7 @@ class OtpController extends Controller
 
         // Loguear al usuario
         Auth::login($user);
+        session()->regenerate(); // Invalida sesiones anteriores
 
         // Redirigir según rol
         if ($user->can('acceder_panel')) {

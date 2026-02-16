@@ -42,6 +42,7 @@ class SocialAuthController extends Controller
 
             // Login user
             Auth::login($user, true);
+            session()->regenerate(); // Invalida sesiones anteriores
 
             // Redirigir según el rol del usuario
             return $this->redirectByRole($user);
