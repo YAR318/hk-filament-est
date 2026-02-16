@@ -311,12 +311,81 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* Create Instance Form */
+        .wa-create-form {
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            border: 2px solid #8b5cf6;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+        }
+
+        .dark .wa-create-form {
+            background: linear-gradient(135deg, #2e1065aa 0%, #1e1b4baa 100%);
+            border-color: #7c3aed;
+        }
+
+        .wa-form-group {
+            margin-bottom: 1rem;
+        }
+
+        .wa-form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+
+        .wa-form-group input {
+            width: 100%;
+            padding: 0.6rem 0.9rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            background: white;
+            transition: border-color 0.15s;
+        }
+
+        .wa-form-group input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        }
+
+        .dark .wa-form-group input {
+            background: #1f2937;
+            border-color: #4b5563;
+            color: #e5e7eb;
+        }
+
+        .wa-form-group .wa-form-hint {
+            font-size: 0.72rem;
+            color: #9ca3af;
+            margin-top: 0.25rem;
+        }
+
+        .wa-form-group .wa-form-error {
+            font-size: 0.75rem;
+            color: #ef4444;
+            margin-top: 0.25rem;
+        }
+
+        .wa-status-card.not-found {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border-color: #8b5cf6;
+        }
+
+        .dark .wa-status-card.not-found {
+            background: linear-gradient(135deg, #2e1065aa 0%, #1e1b4baa 100%);
+            border-color: #7c3aed;
+        }
     </style>
 
     <div class="wa-page">
 
         {{-- STATUS CARD --}}
-        <div class="wa-status-card {{ $connectionState !== 'open' ? 'disconnected' : '' }}"
+        <div class="wa-status-card {{ $connectionState === 'not_found' ? 'not-found' : ($connectionState !== 'open' ? 'disconnected' : '') }}"
             wire:poll.5s="refreshStatus">
             @if($connectionState === 'open')
             {{-- Connected --}}
@@ -342,15 +411,40 @@
 
             <div class="wa-actions">
                 <x-filament::button size="sm" color="info" wire:click="refreshStatus">
-                    🔄 Actualizar
+                    Actualizar
+                </x-filament::button>
+                <x-filament::button size="sm" color="warning" wire:click="toggleCreateForm">
+                    ⚙️ Configurar Webhook
                 </x-filament::button>
                 <x-filament::button size="sm" color="gray" wire:click="restartInstance"
                     x-on:click="if(!confirm('¿Reiniciar la instancia de WhatsApp?')) $event.stopImmediatePropagation()">
-                    ⚡ Reiniciar
+                    Reiniciar
                 </x-filament::button>
                 <x-filament::button size="sm" color="danger" wire:click="disconnect"
                     x-on:click="if(!confirm('¿Desconectar WhatsApp? Tendrás que escanear el QR de nuevo.')) $event.stopImmediatePropagation()">
-                    🔌 Desconectar
+                    Desconectar
+                </x-filament::button>
+                <x-filament::button size="sm" color="danger" wire:click="deleteInstance"
+                    x-on:click="if(!confirm('⚠️ ¿Eliminar la instancia completa? Esta acción no se puede deshacer. Tendrás que crear una nueva.')) $event.stopImmediatePropagation()">
+                    Eliminar Instancia
+                </x-filament::button>
+            </div>
+
+            @elseif($connectionState === 'not_found')
+            {{-- Instance Not Found --}}
+            <div class="wa-avatar-placeholder" style="background: linear-gradient(135deg, #8b5cf6, #6366f1);">🔧</div>
+            <h2 style="font-size: 1.3rem; font-weight: 800; margin: 0 0 0.25rem;">
+                Instancia no encontrada
+            </h2>
+            <p style="font-size: 0.85rem; opacity: 0.6; margin: 0;">
+                No existe una instancia configurada en Evolution API. Crea una nueva para comenzar.
+            </p>
+            <div class="wa-actions" style="margin-top: 1rem;">
+                <x-filament::button size="sm" color="info" wire:click="toggleCreateForm">
+                    ➕ Crear Instancia
+                </x-filament::button>
+                <x-filament::button size="sm" color="gray" wire:click="refreshStatus">
+                    Reintentar
                 </x-filament::button>
             </div>
 
@@ -374,14 +468,88 @@
                     Desconectado
                 </span>
             </div>
+            <div class="wa-actions" style="margin-top: 0.75rem;">
+                <x-filament::button size="sm" color="warning" wire:click="toggleCreateForm">
+                    ⚙️ Configurar Webhook
+                </x-filament::button>
+                <x-filament::button size="sm" color="danger" wire:click="deleteInstance"
+                    x-on:click="if(!confirm('⚠️ ¿Eliminar la instancia completa? Tendrás que crear una nueva.')) $event.stopImmediatePropagation()">
+                    Eliminar Instancia
+                </x-filament::button>
+            </div>
             @endif
         </div>
 
-        {{-- QR CODE (only if disconnected) --}}
-        @if($connectionState !== 'open' && $connectionState !== 'loading')
+        {{-- CREATE INSTANCE / CONFIGURE WEBHOOK FORM --}}
+        @if($showCreateForm)
+        <div class="wa-create-form">
+            @if(!$instanceExists)
+            {{-- Modo: Crear instancia nueva --}}
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 1rem;">
+                🔧 Crear nueva instancia
+            </h3>
+
+            <div class="wa-form-group">
+                <label for="newInstanceName">Nombre de la instancia</label>
+                <input type="text" id="newInstanceName" wire:model="newInstanceName" placeholder="HunabkuBot">
+                <p class="wa-form-hint">Solo letras, números, guiones y guiones bajos (ej: HunabkuBot)</p>
+                @error('newInstanceName') <p class="wa-form-error">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="wa-form-group">
+                <label for="newWebhookUrl">URL del webhook (n8n)</label>
+                <input type="text" id="newWebhookUrl" wire:model="newWebhookUrl"
+                    placeholder="http://host.docker.internal:5678/webhook/whatsapp">
+                <p class="wa-form-hint">URL donde n8n recibirá los mensajes de WhatsApp</p>
+                @error('newWebhookUrl') <p class="wa-form-error">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="wa-actions" style="justify-content: flex-start;">
+                <x-filament::button size="sm" color="success" wire:click="createInstance">
+                    ✅ Crear Instancia
+                </x-filament::button>
+                <x-filament::button size="sm" color="gray" wire:click="toggleCreateForm">
+                    Cancelar
+                </x-filament::button>
+            </div>
+
+            @else
+            {{-- Modo: Configurar webhook de instancia existente --}}
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 0.25rem;">
+                ⚙️ Configurar Webhook
+            </h3>
+            <p style="font-size: 0.8rem; opacity: 0.6; margin: 0 0 1rem;">
+                Configura la URL y los eventos del webhook para la instancia <strong>{{
+                    config('services.evolution.instance', 'HunabkuBot') }}</strong>.
+                Se activarán: MESSAGES_UPSERT, CONNECTION_UPDATE, SEND_MESSAGE.
+            </p>
+
+            <div class="wa-form-group">
+                <label for="newWebhookUrl">URL del webhook (n8n)</label>
+                <input type="text" id="newWebhookUrl" wire:model="newWebhookUrl"
+                    placeholder="http://host.docker.internal:5678/webhook/whatsapp">
+                <p class="wa-form-hint">URL donde n8n recibirá los mensajes de WhatsApp</p>
+                @error('newWebhookUrl') <p class="wa-form-error">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="wa-actions" style="justify-content: flex-start;">
+                <x-filament::button size="sm" color="success" wire:click="configureWebhook">
+                    ✅ Guardar Webhook
+                </x-filament::button>
+                <x-filament::button size="sm" color="gray" wire:click="toggleCreateForm">
+                    Cancelar
+                </x-filament::button>
+            </div>
+            @endif
+        </div>
+        @endif
+
+        {{-- QR CODE (only if disconnected and instance exists) --}}
+        @if($connectionState !== 'open' && $connectionState !== 'loading' && $connectionState !== 'not_found' &&
+        $instanceExists)
         <div class="wa-qr-section" wire:poll.10s="fetchQR">
             <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 0.5rem;">
-                📷 Escanea el código QR
+                Escanea el código QR
             </h3>
             <p style="font-size: 0.8rem; opacity: 0.6; margin: 0 0 1rem;">
                 Abre WhatsApp en tu celular → Ajustes → Dispositivos vinculados → Vincular dispositivo
@@ -401,7 +569,7 @@
 
             <div class="wa-actions" style="margin-top: 1rem;">
                 <x-filament::button size="sm" color="info" wire:click="fetchQR">
-                    🔄 Regenerar QR
+                    Regenerar QR
                 </x-filament::button>
             </div>
         </div>
@@ -409,7 +577,7 @@
 
         {{-- STEPS --}}
         <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;">
-            📋 ¿Cómo conectar?
+            ¿Cómo conectar?
         </h3>
         <div class="wa-steps">
             <div class="wa-step">
@@ -436,7 +604,7 @@
 
         {{-- TECHNICAL INFO --}}
         <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;">
-            ⚙️ Información técnica
+            Información técnica
         </h3>
         <div class="wa-info-grid">
             <div class="wa-info-card">
@@ -468,14 +636,17 @@
                         style="padding: 0.2rem 0.5rem; background: #dbeafe; color: #1e40af; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600;">SEND_MESSAGE</span>
                 </div>
             </div>
+
+
+
             <div class="wa-info-card">
                 <p class="wa-info-label">¿Necesitas ayuda?</p>
                 <p style="font-size: 0.8rem; opacity: 0.7; margin: 0.3rem 0;">
                     Contacta al administrador del sistema si tienes problemas.
                 </p>
-                <a href="https://docs.evolution-api.com/" target="_blank"
+                <a href="http://localhost:8080/manager/" target="_blank"
                     style="font-size: 0.8rem; color: #3b82f6; text-decoration: none; font-weight: 600;">
-                    📖 Documentación oficial →
+                    Acceso a Evolution API
                 </a>
             </div>
         </div>

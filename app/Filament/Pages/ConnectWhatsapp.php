@@ -26,6 +26,12 @@ class ConnectWhatsapp extends Page
     public ?string $profilePic = null;
     public ?string $ownerPhone = null;
 
+    // Formulario de creación de instancia
+    public bool $showCreateForm = false;
+    public bool $instanceExists = true;
+    public string $newInstanceName = '';
+    public string $newWebhookUrl = '';
+
     /**
      * Verificar si el usuario puede acceder a esta página.
      */
@@ -41,6 +47,9 @@ class ConnectWhatsapp extends Page
 
     public function mount(): void
     {
+        // Pre-cargar valores por defecto para el formulario
+        $this->newWebhookUrl = 'http://host.docker.internal:5678/webhook/whatsapp';
+        $this->newInstanceName = config('services.evolution.instance', 'HunabkuBot');
         $this->refreshStatus();
     }
 
@@ -54,7 +63,21 @@ class ConnectWhatsapp extends Page
 
             // Get connection state
             $stateData = $service->getConnectionState();
-            $this->connectionState = $stateData['instance']['state'] ?? 'unknown';
+            $state = $stateData['instance']['state'] ?? 'unknown';
+
+            // Detectar si la instancia no existe (404 o error)
+            if ($state === 'error' || $state === 'unknown') {
+                // Intentar obtener info para confirmar que existe
+                $info = $service->getInstanceInfo();
+                if (empty($info) || isset($info['error'])) {
+                    $this->instanceExists = false;
+                    $this->connectionState = 'not_found';
+                    return;
+                }
+            }
+
+            $this->instanceExists = true;
+            $this->connectionState = $state;
 
             // Get instance info
             $info = $service->getInstanceInfo();
@@ -92,6 +115,113 @@ class ConnectWhatsapp extends Page
 
         // Evolution API returns base64 QR in different formats depending on version
         $this->qrCode = $qrData['base64'] ?? $qrData['qrcode'] ?? null;
+    }
+
+    /**
+     * Mostrar/ocultar formulario de creación
+     */
+    public function toggleCreateForm(): void
+    {
+        $this->showCreateForm = !$this->showCreateForm;
+    }
+
+    /**
+     * Crear una nueva instancia en Evolution API
+     */
+    public function createInstance(): void
+    {
+        $this->validate([
+            'newInstanceName' => 'required|string|min:3|max:50|regex:/^[a-zA-Z0-9_-]+$/',
+            'newWebhookUrl' => 'required|url',
+        ], [
+            'newInstanceName.required' => 'El nombre de la instancia es obligatorio.',
+            'newInstanceName.regex' => 'Solo letras, números, guiones y guiones bajos.',
+            'newInstanceName.min' => 'Mínimo 3 caracteres.',
+            'newWebhookUrl.required' => 'La URL del webhook es obligatoria.',
+            'newWebhookUrl.url' => 'Debe ser una URL válida.',
+        ]);
+
+        $service = app(EvolutionService::class);
+        $result = $service->createInstance($this->newInstanceName, $this->newWebhookUrl);
+
+        if (isset($result['error'])) {
+            \Filament\Notifications\Notification::make()
+                ->title('Error al crear instancia')
+                ->body($result['error'])
+                ->danger()
+                ->send();
+            return;
+        }
+
+        \Filament\Notifications\Notification::make()
+            ->title('Instancia creada')
+            ->body("La instancia \"{$this->newInstanceName}\" se creó correctamente. Escanea el QR para vincular.")
+            ->success()
+            ->send();
+
+        $this->showCreateForm = false;
+        sleep(1);
+        $this->refreshStatus();
+    }
+
+    /**
+     * Configurar webhook manualmente en la instancia actual
+     */
+    public function configureWebhook(): void
+    {
+        $this->validate([
+            'newWebhookUrl' => 'required|url',
+        ], [
+            'newWebhookUrl.required' => 'La URL del webhook es obligatoria.',
+            'newWebhookUrl.url' => 'Debe ser una URL válida.',
+        ]);
+
+        $service = app(EvolutionService::class);
+        $instanceName = config('services.evolution.instance', 'HunabkuBot');
+        $result = $service->setWebhook($instanceName, $this->newWebhookUrl);
+
+        if ($result) {
+            \Filament\Notifications\Notification::make()
+                ->title('Webhook configurado')
+                ->body("Webhook configurado correctamente en \"{$instanceName}\".")
+                ->success()
+                ->send();
+            $this->showCreateForm = false;
+        }
+        else {
+            \Filament\Notifications\Notification::make()
+                ->title('Error al configurar webhook')
+                ->body('No se pudo configurar el webhook. Revisa los logs.')
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
+     * Eliminar la instancia actual de Evolution API
+     */
+    public function deleteInstance(): void
+    {
+        $service = app(EvolutionService::class);
+        $result = $service->deleteInstance();
+
+        if ($result) {
+            \Filament\Notifications\Notification::make()
+                ->title('Instancia eliminada')
+                ->body('La instancia fue eliminada de Evolution API.')
+                ->success()
+                ->send();
+        }
+        else {
+            \Filament\Notifications\Notification::make()
+                ->title('Error')
+                ->body('No se pudo eliminar la instancia.')
+                ->danger()
+                ->send();
+        }
+
+        sleep(1);
+        $this->refreshStatus();
     }
 
     /**

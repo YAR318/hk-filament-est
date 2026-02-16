@@ -182,4 +182,116 @@ class EvolutionService
             return false;
         }
     }
+
+    /**
+     * Crear una nueva instancia en Evolution API
+     */
+    public function createInstance(string $instanceName, string $webhookUrl): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'apikey' => $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->post("{$this->baseUrl}/instance/create", [
+                'instanceName' => $instanceName,
+                'integration' => 'WHATSAPP-BAILEYS',
+                'qrcode' => true,
+            ]);
+
+            if ($response->successful()) {
+                Log::info('Instancia creada en Evolution API', [
+                    'instance' => $instanceName,
+                    'response' => $response->json(),
+                ]);
+
+                // Configurar webhook después de crear la instancia
+                $this->setWebhook($instanceName, $webhookUrl);
+
+                return $response->json();
+            }
+
+            Log::error('Error al crear instancia', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return ['error' => 'Error al crear instancia: ' . $response->body()];
+        }
+        catch (\Exception $e) {
+            Log::error('Excepción al crear instancia: ' . $e->getMessage());
+            return ['error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Configurar webhook de una instancia en Evolution API
+     */
+    public function setWebhook(string $instanceName, string $webhookUrl): bool
+    {
+        try {
+            $response = Http::withHeaders([
+                'apikey' => $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->post("{$this->baseUrl}/webhook/set/{$instanceName}", [
+                'enabled' => true,
+                'url' => $webhookUrl,
+                'webhookByEvents' => false,
+                'webhookBase64' => true,
+                'events' => [
+                    'MESSAGES_UPSERT',
+                    'CONNECTION_UPDATE',
+                    'SEND_MESSAGE',
+                ],
+            ]);
+
+            if ($response->successful()) {
+                Log::info('Webhook configurado para instancia', [
+                    'instance' => $instanceName,
+                    'url' => $webhookUrl,
+                    'response' => $response->json(),
+                ]);
+                return true;
+            }
+
+            Log::error('Error al configurar webhook', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            return false;
+        }
+        catch (\Exception $e) {
+            Log::error('Excepción al configurar webhook: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Eliminar una instancia de Evolution API
+     */
+    public function deleteInstance(string $instanceName = null): bool
+    {
+        $name = $instanceName ?? $this->instanceName;
+
+        try {
+            $response = Http::withHeaders([
+                'apikey' => $this->apiKey,
+            ])->delete("{$this->baseUrl}/instance/delete/{$name}");
+
+            if ($response->successful()) {
+                Log::info('Instancia eliminada', ['instance' => $name]);
+                return true;
+            }
+
+            Log::error('Error al eliminar instancia', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return false;
+        }
+        catch (\Exception $e) {
+            Log::error('Excepción al eliminar instancia: ' . $e->getMessage());
+            return false;
+        }
+    }
 }
