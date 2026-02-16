@@ -53,4 +53,15 @@ return [
         'instance' => env('EVOLUTION_INSTANCE', 'HunabkuBot'),
     ],
 
+    /*
+     |--------------------------------------------------------------------------
+     | API Interna
+     |--------------------------------------------------------------------------
+     |
+     | Clave para proteger los endpoints de la API REST interna.
+     | Si está vacía, se permite acceso sin autenticación (desarrollo local).
+     |
+     */
+    'api_key' => env('API_INTERNAL_KEY', ''),
+
 ];
