@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\OperatorController;
 use App\Http\Controllers\Api\ChatHistoryController;
 use App\Http\Controllers\Api\BlockedPhoneController;
 use App\Http\Controllers\Api\BotStatusController;
+use App\Http\Controllers\Api\AppointmentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -47,5 +48,11 @@ Route::middleware(['api.key', 'throttle:60,1'])->group(function () {
     // Rutas para operadores
     Route::get('/operators/check/{phoneNumber}', [OperatorController::class , 'check']);
     Route::post('/operators/update-last-message', [OperatorController::class , 'updateLastMessage']);
+
+    // Rutas para citas (Google Calendar)
+    Route::post('/appointments/create', [AppointmentController::class , 'store']);
+    Route::post('/appointments/cancel', [AppointmentController::class , 'cancel']);
+    Route::post('/appointments/reschedule', [AppointmentController::class , 'reschedule']);
+    Route::get('/appointments/available/{date}', [AppointmentController::class , 'available']);
 
 });

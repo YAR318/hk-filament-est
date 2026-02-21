@@ -53,6 +53,12 @@ return [
         'instance' => env('EVOLUTION_INSTANCE', 'HunabkuBot'),
     ],
 
+    'google_calendar' => [
+        'credentials_path' => env('GOOGLE_CALENDAR_CREDENTIALS', storage_path('app/google-calendar-credentials.json')),
+        'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),
+        'app_name' => env('GOOGLE_CALENDAR_APP_NAME', 'HunabKu Calendar'),
+    ],
+
     /*
      |--------------------------------------------------------------------------
      | API Interna
