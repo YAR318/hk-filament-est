@@ -32,8 +32,7 @@ class GoogleCalendarService
 
         if ($credentialsPath && file_exists($credentialsPath)) {
             $client->setAuthConfig($credentialsPath);
-        }
-        else {
+        } else {
             Log::warning('Google Calendar: No se encontró archivo de credenciales', [
                 'path' => $credentialsPath,
             ]);
@@ -78,14 +77,6 @@ class GoogleCalendarService
                 'end' => [
                     'dateTime' => $endDateTime,
                     'timeZone' => config('app.timezone', 'America/Mexico_City'),
-                ],
-                'conferenceData' => [
-                    'createRequest' => [
-                        'requestId' => uniqid('meet-'),
-                        'conferenceSolutionKey' => [
-                            'type' => 'hangoutsMeet',
-                        ],
-                    ],
                 ],
                 'reminders' => [
                     'useDefault' => false,
@@ -137,8 +128,7 @@ class GoogleCalendarService
                 'event_id' => $createdEvent->getId(),
                 'meet_link' => $meetLink,
             ];
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Google Calendar: Error al crear evento', [
                 'error' => $e->getMessage(),
                 'appointment_id' => $appointment->id,
@@ -162,8 +152,7 @@ class GoogleCalendarService
 
             Log::info('Google Calendar: Evento cancelado', ['event_id' => $eventId]);
             return true;
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Google Calendar: Error al cancelar evento', [
                 'event_id' => $eventId,
                 'error' => $e->getMessage(),
@@ -218,8 +207,7 @@ class GoogleCalendarService
                 'event_id' => $updatedEvent->getId(),
                 'meet_link' => $meetLink,
             ];
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Google Calendar: Error al actualizar evento', [
                 'event_id' => $eventId,
                 'error' => $e->getMessage(),

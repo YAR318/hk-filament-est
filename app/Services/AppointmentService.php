@@ -14,12 +14,12 @@ use Carbon\Carbon;
 class AppointmentService
 {
     protected GoogleCalendarService $calendarService;
-    protected EvolutionService $evolutionService;
+    protected WhatsAppService $whatsAppService;
 
-    public function __construct(GoogleCalendarService $calendarService, EvolutionService $evolutionService)
+    public function __construct(GoogleCalendarService $calendarService, WhatsAppService $whatsAppService)
     {
         $this->calendarService = $calendarService;
-        $this->evolutionService = $evolutionService;
+        $this->whatsAppService = $whatsAppService;
     }
 
     /**
@@ -90,12 +90,25 @@ class AppointmentService
     {
         $scheduledAt = Carbon::parse($data['scheduled_at']);
 
+        // Verificar si el cliente ya tiene una cita activa
+        $existingAppointment = Appointment::byPhone($data['client_phone'])
+            ->upcoming()
+            ->first();
+
+        if ($existingAppointment) {
+            throw new \InvalidArgumentException(
+                'Ya tienes una cita programada para el '
+                . $existingAppointment->scheduled_at->format('d/m/Y H:i')
+                . '. Si deseas cambiar la hora, debes reagendar tu cita actual.'
+            );
+        }
+
         if (!$this->isAvailable($scheduledAt)) {
             throw new \InvalidArgumentException(
                 'El horario seleccionado no está disponible. Solo se aceptan citas de '
                 . AppSetting::getWorkStartHour() . ':00 a '
                 . AppSetting::getWorkEndHour() . ':00, de lunes a viernes.'
-                );
+            );
         }
 
         // Crear cita en BD
@@ -109,20 +122,7 @@ class AppointmentService
             'status' => Appointment::STATUS_SCHEDULED,
         ]);
 
-        // Crear evento en Google Calendar + Meet
-        try {
-            $calendarResult = $this->calendarService->createEvent($appointment);
-            $appointment->update([
-                'google_event_id' => $calendarResult['event_id'],
-                'meet_link' => $calendarResult['meet_link'],
-            ]);
-        }
-        catch (\Exception $e) {
-            Log::warning('No se pudo crear evento en Google Calendar, la cita se creó sin él', [
-                'appointment_id' => $appointment->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        // Crear evento en Google Calendar + Meet (Deshabilitado: se hará desde n8n)
 
         // Enviar notificaciones
         $this->sendConfirmationNotifications($appointment);
@@ -139,7 +139,7 @@ class AppointmentService
     /**
      * Cancelar una cita
      */
-    public function cancel(int $appointmentId, string $phone = null): Appointment
+    public function cancel(int $appointmentId, ?string $phone = null): Appointment
     {
         $query = Appointment::where('id', $appointmentId);
         if ($phone) {
@@ -152,10 +152,7 @@ class AppointmentService
             throw new \InvalidArgumentException('Esta cita no se puede cancelar.');
         }
 
-        // Cancelar en Google Calendar
-        if ($appointment->google_event_id) {
-            $this->calendarService->cancelEvent($appointment->google_event_id);
-        }
+        // Cancelar en Google Calendar (Deshabilitado: se hará desde n8n)
 
         $appointment->update(['status' => Appointment::STATUS_CANCELLED]);
 
@@ -170,7 +167,7 @@ class AppointmentService
     /**
      * Reagendar una cita
      */
-    public function reschedule(int $appointmentId, string $newDateTime, string $phone = null): Appointment
+    public function reschedule(int $appointmentId, string $newDateTime, ?string $phone = null): Appointment
     {
         $query = Appointment::where('id', $appointmentId);
         if ($phone) {
@@ -188,7 +185,7 @@ class AppointmentService
         if (!$this->isAvailable($newScheduledAt)) {
             throw new \InvalidArgumentException(
                 'El nuevo horario no está disponible.'
-                );
+            );
         }
 
         $oldDateTime = $appointment->scheduled_at->copy();
@@ -199,24 +196,7 @@ class AppointmentService
             'reminder_1h_sent' => false,
         ]);
 
-        // Actualizar en Google Calendar
-        if ($appointment->google_event_id) {
-            try {
-                $calendarResult = $this->calendarService->updateEvent(
-                    $appointment->google_event_id,
-                    $appointment
-                );
-                $appointment->update([
-                    'meet_link' => $calendarResult['meet_link'],
-                ]);
-            }
-            catch (\Exception $e) {
-                Log::warning('No se pudo actualizar evento en Google Calendar', [
-                    'appointment_id' => $appointment->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+        // Actualizar en Google Calendar (Deshabilitado: se hará desde n8n)
 
         // Enviar notificaciones
         $this->sendRescheduleNotifications($appointment, $oldDateTime);
@@ -225,6 +205,26 @@ class AppointmentService
             'appointment_id' => $appointment->id,
             'old_date' => $oldDateTime->toDateTimeString(),
             'new_date' => $newScheduledAt->toDateTimeString(),
+        ]);
+
+        return $appointment;
+    }
+
+    /**
+     * Sincronizar un evento de Google Calendar
+     */
+    public function syncCalendar(int $appointmentId, string $googleEventId, ?string $meetLink): Appointment
+    {
+        $appointment = Appointment::findOrFail($appointmentId);
+
+        $appointment->update([
+            'google_event_id' => $googleEventId,
+            'meet_link' => $meetLink,
+        ]);
+
+        Log::info('Calendario sincronizado', [
+            'appointment_id' => $appointment->id,
+            'google_event_id' => $googleEventId,
         ]);
 
         return $appointment;
@@ -251,8 +251,7 @@ class AppointmentService
         if ($adminEmail) {
             try {
                 Mail::to($adminEmail)->send(new AppointmentConfirmed($appointment));
-            }
-            catch (\Exception $e) {
+            } catch (\Exception $e) {
                 Log::warning('Error enviando email de confirmación al encargado', ['error' => $e->getMessage()]);
             }
         }
@@ -261,14 +260,13 @@ class AppointmentService
         if ($appointment->client_email) {
             try {
                 Mail::to($appointment->client_email)->send(new AppointmentConfirmed($appointment));
-            }
-            catch (\Exception $e) {
+            } catch (\Exception $e) {
                 Log::warning('Error enviando email de confirmación al cliente', ['error' => $e->getMessage()]);
             }
         }
 
-        // WhatsApp al cliente
-        $this->sendWhatsAppConfirmation($appointment);
+        // WhatsApp al cliente (desactivado: n8n ya envía la confirmación)
+        // $this->sendWhatsAppConfirmation($appointment);
     }
 
     /**
@@ -280,8 +278,7 @@ class AppointmentService
         if ($adminEmail) {
             try {
                 Mail::to($adminEmail)->send(new AppointmentCancelled($appointment));
-            }
-            catch (\Exception $e) {
+            } catch (\Exception $e) {
                 Log::warning('Error enviando email de cancelación', ['error' => $e->getMessage()]);
             }
         }
@@ -289,14 +286,14 @@ class AppointmentService
         if ($appointment->client_email) {
             try {
                 Mail::to($appointment->client_email)->send(new AppointmentCancelled($appointment));
-            }
-            catch (\Exception $e) {
+            } catch (\Exception $e) {
                 Log::warning('Error enviando email de cancelación al cliente', ['error' => $e->getMessage()]);
             }
         }
 
         // WhatsApp
-        $this->sendWhatsAppMessage($appointment->client_phone,
+        $this->sendWhatsAppMessage(
+            $appointment->client_phone,
             "❌ Tu cita del {$appointment->scheduled_at->format('d/m/Y H:i')} ha sido cancelada."
         );
     }
@@ -310,8 +307,7 @@ class AppointmentService
         if ($adminEmail) {
             try {
                 Mail::to($adminEmail)->send(new AppointmentRescheduled($appointment, $oldDateTime));
-            }
-            catch (\Exception $e) {
+            } catch (\Exception $e) {
                 Log::warning('Error enviando email de reagendar', ['error' => $e->getMessage()]);
             }
         }
@@ -319,15 +315,15 @@ class AppointmentService
         if ($appointment->client_email) {
             try {
                 Mail::to($appointment->client_email)->send(new AppointmentRescheduled($appointment, $oldDateTime));
-            }
-            catch (\Exception $e) {
+            } catch (\Exception $e) {
                 Log::warning('Error enviando email de reagendar al cliente', ['error' => $e->getMessage()]);
             }
         }
 
         // WhatsApp
         $meetInfo = $appointment->meet_link ? "\n📹 Meet: {$appointment->meet_link}" : '';
-        $this->sendWhatsAppMessage($appointment->client_phone,
+        $this->sendWhatsAppMessage(
+            $appointment->client_phone,
             "🔄 Tu cita ha sido reagendada.\n"
             . "📅 Antes: {$oldDateTime->format('d/m/Y H:i')}\n"
             . "📅 Nueva fecha: {$appointment->scheduled_at->format('d/m/Y H:i')}"
@@ -357,9 +353,8 @@ class AppointmentService
     protected function sendWhatsAppMessage(string $phone, string $message): void
     {
         try {
-            $this->evolutionService->sendMessage($phone, $message);
-        }
-        catch (\Exception $e) {
+            $this->whatsAppService->sendMessage($phone, $message);
+        } catch (\Exception $e) {
             Log::warning('Error enviando mensaje WhatsApp', [
                 'phone' => $phone,
                 'error' => $e->getMessage(),

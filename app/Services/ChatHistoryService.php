@@ -10,12 +10,6 @@ use App\Models\BlockedPhone;
 class ChatHistoryService
 {
     /**
-     * Número del dueño para evitar auto-respuesta (anti-bucle)
-     * TODO: Mover a configuración o base de datos
-     */
-    private const OWNER_JID_FRAGMENT = '7531672288';
-
-    /**
      * Validar si un mensaje debe ser procesado por el bot
      * 
      * @param string $phoneNumber Número de teléfono normalizado
@@ -28,6 +22,7 @@ class ChatHistoryService
         $fromMe = $messageData['fromMe'] ?? false;
 
         // 1. Verificar si es mensaje propio (anti-bucle)
+        // Nota: n8n ya filtra fromMe:true antes de llegar aquí, esto es respaldo
         if ($fromMe === true) {
             return ['process' => false, 'reason' => 'Mensaje propio ignorado'];
         }
@@ -42,12 +37,7 @@ class ChatHistoryService
             return ['process' => false, 'reason' => 'LID no resuelto'];
         }
 
-        // 4. Verificar si contiene el número del dueño (anti-bucle)
-        if (str_contains($phoneNumber, self::OWNER_JID_FRAGMENT) || str_contains($remoteJid, self::OWNER_JID_FRAGMENT)) {
-            return ['process' => false, 'reason' => 'Bucle de dueño detectado'];
-        }
-
-        // 5. Verificar si está bloqueado en la base de datos
+        // 4. Verificar si está bloqueado en la base de datos
         if (BlockedPhone::isBlocked($phoneNumber)) {
             return ['process' => false, 'reason' => 'Número bloqueado'];
         }
@@ -86,12 +76,12 @@ class ChatHistoryService
     public function getOrCreateConversation(string $phoneNumber, ?string $contactName = null): ChatConversation
     {
         return ChatConversation::firstOrCreate(
-        ['phone_number' => $phoneNumber],
-        [
-            'contact_name' => $contactName,
-            'status' => 'active',
-            'last_message_at' => now(),
-        ]
+            ['phone_number' => $phoneNumber],
+            [
+                'contact_name' => $contactName,
+                'status' => 'active',
+                'last_message_at' => now(),
+            ]
         );
     }
 
@@ -103,8 +93,7 @@ class ChatHistoryService
         string $content,
         ?int $whatsappMessageId = null,
         ?string $contactName = null
-        ): ChatMessage
-    {
+    ): ChatMessage {
         $conversation = $this->getOrCreateConversation($phoneNumber, $contactName);
 
         // Actualizar nombre si se proporciona y la conversación no tiene uno
@@ -133,8 +122,7 @@ class ChatHistoryService
         string $phoneNumber,
         string $content,
         ?array $metadata = null
-        ): ChatMessage
-    {
+    ): ChatMessage {
         $conversation = $this->getOrCreateConversation($phoneNumber);
 
         $message = ChatMessage::create([
@@ -156,8 +144,7 @@ class ChatHistoryService
     public function addSystemMessage(
         string $phoneNumber,
         string $content
-        ): ChatMessage
-    {
+    ): ChatMessage {
         $conversation = $this->getOrCreateConversation($phoneNumber);
 
         return ChatMessage::create([
@@ -189,8 +176,8 @@ class ChatHistoryService
     {
         return ChatConversation::with([
             'messages' => function ($query) {
-            $query->latest('sent_at')->limit(50);
-        }
+                $query->latest('sent_at')->limit(50);
+            }
         ])->where('phone_number', $phoneNumber)->first();
     }
 

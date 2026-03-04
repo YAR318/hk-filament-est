@@ -35,12 +35,12 @@ class ChatConversation extends Model
 
     public function messages(): HasMany
     {
-        return $this->hasMany(ChatMessage::class , 'conversation_id');
+        return $this->hasMany(ChatMessage::class, 'conversation_id');
     }
 
     public function assignedOperator(): BelongsTo
     {
-        return $this->belongsTo(Operator::class , 'assigned_to');
+        return $this->belongsTo(Operator::class, 'assigned_to');
     }
 
     public function latestMessages(int $limit = 10): HasMany
@@ -59,11 +59,12 @@ class ChatConversation extends Model
             ->get()
             ->reverse()
             ->map(function ($message) {
-            return [
-                'role' => $message->role,
-                'content' => $message->content,
-            ];
-        })
+                return [
+                    'role' => $message->role,
+                    'content' => $message->content,
+                ];
+            })
+            ->values()
             ->toArray();
     }
 }

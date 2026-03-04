@@ -5,12 +5,11 @@ namespace App\Filament\Pages;
 use App\Models\AppSetting;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
-use Livewire\Attributes\Validate;
 
 class AppSettingsPage extends Page
 {
-    protected static ?string $navigationLabel = 'Configuración';
-    protected static ?string $title = 'Configuración del Sistema';
+    protected static ?string $navigationLabel = 'Configuracion';
+    protected static ?string $title = 'Configuracion del Sistema';
 
     protected string $view = 'filament.pages.app-settings';
 
@@ -21,7 +20,7 @@ class AppSettingsPage extends Page
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Gestión';
+        return 'Gestion';
     }
 
     public static function getNavigationSort(): ?int
@@ -29,11 +28,17 @@ class AppSettingsPage extends Page
         return 50;
     }
 
-    // Propiedades del formulario
+    // Propiedades del formulario - General
     public string $admin_email = '';
     public string $work_start_hour = '9';
     public string $work_end_hour = '17';
     public string $work_days = '1,2,3,4,5';
+
+    // Propiedades del formulario - WhatsApp
+    public string $whatsapp_provider = 'evolution';
+    public string $meta_phone_id = '';
+    public string $meta_access_token = '';
+    public string $meta_verify_token = '';
 
     public function mount(): void
     {
@@ -41,10 +46,15 @@ class AppSettingsPage extends Page
         $this->work_start_hour = AppSetting::get('work_start_hour', '9') ?? '9';
         $this->work_end_hour = AppSetting::get('work_end_hour', '17') ?? '17';
         $this->work_days = AppSetting::get('work_days', '1,2,3,4,5') ?? '1,2,3,4,5';
+
+        $this->whatsapp_provider = AppSetting::get('whatsapp_provider', 'evolution') ?? 'evolution';
+        $this->meta_phone_id = AppSetting::get('meta_phone_id', '') ?? '';
+        $this->meta_access_token = AppSetting::get('meta_access_token', '') ?? '';
+        $this->meta_verify_token = AppSetting::get('meta_verify_token', '') ?? '';
     }
 
     /**
-     * Guardar configuración
+     * Guardar configuracion general
      */
     public function saveSettings(): void
     {
@@ -61,8 +71,38 @@ class AppSettingsPage extends Page
         AppSetting::set('work_days', $this->work_days);
 
         Notification::make()
-            ->title('Configuración guardada')
-            ->body('Los cambios se aplicarán de inmediato.')
+            ->title('Configuracion guardada')
+            ->body('Los cambios se aplicaran de inmediato.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Guardar configuracion de WhatsApp
+     */
+    public function saveWhatsAppSettings(): void
+    {
+        $rules = [
+            'whatsapp_provider' => 'required|in:evolution,meta',
+        ];
+
+        // Validar credenciales de Meta solo si se selecciona Meta
+        if ($this->whatsapp_provider === 'meta') {
+            $rules['meta_phone_id'] = 'required|string';
+            $rules['meta_access_token'] = 'required|string';
+            $rules['meta_verify_token'] = 'required|string';
+        }
+
+        $this->validate($rules);
+
+        AppSetting::set('whatsapp_provider', $this->whatsapp_provider);
+        AppSetting::set('meta_phone_id', $this->meta_phone_id);
+        AppSetting::set('meta_access_token', $this->meta_access_token);
+        AppSetting::set('meta_verify_token', $this->meta_verify_token);
+
+        Notification::make()
+            ->title('Proveedor WhatsApp actualizado')
+            ->body("Proveedor activo: " . strtoupper($this->whatsapp_provider))
             ->success()
             ->send();
     }

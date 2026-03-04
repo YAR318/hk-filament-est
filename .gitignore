@@ -40,3 +40,6 @@ temp_*.html
 # Workflows n8n (contienen API keys y configuración sensible)
 *_workflow*.json
 n8n_*.json
+
+# Archivos de diagramas
+*.drawio

@@ -499,7 +499,7 @@
             <div class="wa-form-group">
                 <label for="newWebhookUrl">URL del webhook (n8n)</label>
                 <input type="text" id="newWebhookUrl" wire:model="newWebhookUrl"
-                    placeholder="http://host.docker.internal:5678/webhook/whatsapp">
+                    placeholder="http://n8n:5678/webhook/whatsapp">
                 <p class="wa-form-hint">URL donde n8n recibirá los mensajes de WhatsApp</p>
                 @error('newWebhookUrl') <p class="wa-form-error">{{ $message }}</p> @enderror
             </div>
@@ -527,7 +527,7 @@
             <div class="wa-form-group">
                 <label for="newWebhookUrl">URL del webhook (n8n)</label>
                 <input type="text" id="newWebhookUrl" wire:model="newWebhookUrl"
-                    placeholder="http://host.docker.internal:5678/webhook/whatsapp">
+                    placeholder="http://n8n:5678/webhook/whatsapp">
                 <p class="wa-form-hint">URL donde n8n recibirá los mensajes de WhatsApp</p>
                 @error('newWebhookUrl') <p class="wa-form-error">{{ $message }}</p> @enderror
             </div>
@@ -568,7 +568,7 @@
             @endif
 
             <div class="wa-actions" style="margin-top: 1rem;">
-                <x-filament::button size="sm" color="info" wire:click="fetchQR">
+                <x-filament::button size="sm" color="info" wire:click="regenerateQR">
                     Regenerar QR
                 </x-filament::button>
             </div>

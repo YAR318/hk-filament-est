@@ -56,14 +56,12 @@ class AppointmentController
                     'status' => $appointment->status,
                 ],
             ]);
-        }
-        catch (\InvalidArgumentException $e) {
+        } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 409);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error creando cita', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
@@ -103,8 +101,7 @@ class AppointmentController
                     ], 404);
                 }
                 $appointmentId = $nextAppointment->id;
-            }
-            else {
+            } else {
                 $appointmentId = $request->appointment_id;
             }
 
@@ -115,18 +112,17 @@ class AppointmentController
                 'message' => 'Cita cancelada exitosamente',
                 'data' => [
                     'id' => $appointment->id,
+                    'google_event_id' => $appointment->google_event_id,
                     'scheduled_at' => $appointment->scheduled_at->format('d/m/Y H:i'),
                     'status' => $appointment->status,
                 ],
             ]);
-        }
-        catch (\InvalidArgumentException $e) {
+        } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 409);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error cancelando cita', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
@@ -166,8 +162,7 @@ class AppointmentController
                     ], 404);
                 }
                 $appointmentId = $nextAppointment->id;
-            }
-            else {
+            } else {
                 $appointmentId = $request->appointment_id;
             }
 
@@ -182,23 +177,67 @@ class AppointmentController
                 'message' => 'Cita reagendada exitosamente',
                 'data' => [
                     'id' => $appointment->id,
+                    'google_event_id' => $appointment->google_event_id,
                     'scheduled_at' => $appointment->scheduled_at->format('d/m/Y H:i'),
                     'meet_link' => $appointment->meet_link,
                     'status' => $appointment->status,
                 ],
             ]);
-        }
-        catch (\InvalidArgumentException $e) {
+        } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 409);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error reagendando cita', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error interno al reagendar la cita',
+            ], 500);
+        }
+    }
+
+    /**
+     * Sincronizar evento de Google Calendar desde n8n
+     *
+     * POST /api/appointments/sync-calendar
+     */
+    public function syncCalendar(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'appointment_id' => 'required|integer|exists:appointments,id',
+            'google_event_id' => 'required|string',
+            'meet_link' => 'nullable|url',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $appointment = $this->appointmentService->syncCalendar(
+                $request->appointment_id,
+                $request->google_event_id,
+                $request->meet_link
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Calendario sincronizado',
+                'data' => [
+                    'id' => $appointment->id,
+                    'google_event_id' => $appointment->google_event_id,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error sincronizando calendario', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno sincronizando',
             ], 500);
         }
     }
@@ -231,12 +270,60 @@ class AppointmentController
                     'total_available' => count($slots),
                 ],
             ]);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Fecha inválida.',
             ], 400);
+        }
+    }
+
+    /**
+     * Consultar próximos horarios disponibles (múltiples días)
+     *
+     * GET /api/appointments/next-available
+     */
+    public function nextAvailable(): JsonResponse
+    {
+        try {
+            $results = [];
+            $today = Carbon::now();
+            Carbon::setLocale('es');
+            $daysChecked = 0;
+            $daysWithSlots = 0;
+            $maxDaysToCheck = 14; // Buscar en los próximos 14 días
+            $maxDaysToShow = 5;  // Mostrar máximo 5 días con disponibilidad
+
+            for ($i = 0; $i < $maxDaysToCheck && $daysWithSlots < $maxDaysToShow; $i++) {
+                $date = $today->copy()->addDays($i);
+                $slots = $this->appointmentService->getAvailableSlots($date);
+
+                if (!empty($slots)) {
+                    $results[] = [
+                        'date' => $date->format('Y-m-d'),
+                        'date_display' => $date->format('d/m/Y'),
+                        'day_name' => $date->translatedFormat('l'),
+                        'available_slots' => $slots,
+                        'total_available' => count($slots),
+                    ];
+                    $daysWithSlots++;
+                }
+                $daysChecked++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'days' => $results,
+                    'total_days' => count($results),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error consultando disponibilidad', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al consultar disponibilidad.',
+            ], 500);
         }
     }
 }

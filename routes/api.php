@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ChatHistoryController;
 use App\Http\Controllers\Api\BlockedPhoneController;
 use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\Api\MetaWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,38 +22,68 @@ use Illuminate\Support\Facades\Route;
 // Ruta de health check (sin autenticación)
 Route::get('/health', function () {
     return response()->json([
-    'status' => 'ok',
-    'project' => 'HK_Filament_EST',
-    'timestamp' => now()->toDateTimeString()
+        'status' => 'ok',
+        'project' => 'HK_Filament_EST',
+        'timestamp' => now()->toDateTimeString()
     ]);
 });
+
+// Webhook de Meta WhatsApp (público, sin api.key)
+Route::get('/webhook/meta', [MetaWebhookController::class, 'verify']);
+Route::post('/webhook/meta', [MetaWebhookController::class, 'receive']);
 
 // Rutas protegidas con API Key + Rate Limiting
 Route::middleware(['api.key', 'throttle:60,1'])->group(function () {
 
     // Ruta para recibir mensajes de WhatsApp desde n8n
-    Route::post('/messages', [MessageController::class , 'store']);
+    Route::post('/messages', [MessageController::class, 'store']);
 
     // Rutas para historial de chat
-    Route::post('/chat/history', [ChatHistoryController::class , 'getHistory']);
-    Route::get('/chat-history/{phone}', [ChatHistoryController::class , 'getHistoryByPhone']);
-    Route::post('/chat/save-response', [ChatHistoryController::class , 'saveAssistantResponse']);
-    Route::post('/chat/process-message', [ChatHistoryController::class , 'processIncomingMessage']);
+    Route::post('/chat/history', [ChatHistoryController::class, 'getHistory']);
+    Route::get('/chat-history/{phone}', [ChatHistoryController::class, 'getHistoryByPhone']);
+    Route::post('/chat/save-response', [ChatHistoryController::class, 'saveAssistantResponse']);
+    Route::post('/chat/process-message', [ChatHistoryController::class, 'processIncomingMessage']);
 
     // Verificar si un número está bloqueado
-    Route::get('/whatsapp/check-block/{phone}', [BlockedPhoneController::class , 'check']);
+    Route::get('/whatsapp/check-block/{phone}', [BlockedPhoneController::class, 'check']);
 
     // Verificar si el bot está activo para un número
-    Route::get('/bot/status/{phone}', [BotStatusController::class , 'check']);
+    Route::get('/bot/status/{phone}', [BotStatusController::class, 'check']);
 
     // Rutas para operadores
-    Route::get('/operators/check/{phoneNumber}', [OperatorController::class , 'check']);
-    Route::post('/operators/update-last-message', [OperatorController::class , 'updateLastMessage']);
+    Route::get('/operators/check/{phoneNumber}', [OperatorController::class, 'check']);
+    Route::post('/operators/update-last-message', [OperatorController::class, 'updateLastMessage']);
 
     // Rutas para citas (Google Calendar)
-    Route::post('/appointments/create', [AppointmentController::class , 'store']);
-    Route::post('/appointments/cancel', [AppointmentController::class , 'cancel']);
-    Route::post('/appointments/reschedule', [AppointmentController::class , 'reschedule']);
-    Route::get('/appointments/available/{date}', [AppointmentController::class , 'available']);
+    Route::post('/appointments/create', [AppointmentController::class, 'store']);
+    Route::post('/appointments/cancel', [AppointmentController::class, 'cancel']);
+    Route::post('/appointments/reschedule', [AppointmentController::class, 'reschedule']);
+    Route::post('/appointments/sync-calendar', [AppointmentController::class, 'syncCalendar']);
+    Route::get('/appointments/next-slots', [AppointmentController::class, 'nextAvailable']);
+    Route::get('/appointments/available/{date}', [AppointmentController::class, 'available']);
+
+    // Enviar mensaje via Meta WhatsApp API (usado por n8n)
+    Route::post(
+        '/whatsapp/send-meta',
+        function (\Illuminate\Http\Request $request) {
+            $request->validate([
+                'phone_number' => 'required|string',
+                'message' => 'required|string',
+            ]);
+
+            $provider = new \App\Services\WhatsApp\MetaWhatsAppProvider();
+
+            if (!$provider->isConfigured()) {
+                return response()->json(['success' => false, 'message' => 'Meta API no configurada'], 400);
+            }
+
+            try {
+                $result = $provider->sendMessage($request->phone_number, $request->message);
+                return response()->json(['success' => true, 'data' => $result]);
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+        }
+    );
 
 });

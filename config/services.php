@@ -53,6 +53,10 @@ return [
         'instance' => env('EVOLUTION_INSTANCE', 'HunabkuBot'),
     ],
 
+    'whatsapp' => [
+        'owner_phone' => env('BOT_OWNER_PHONE', '5217531672288'),
+    ],
+
     'google_calendar' => [
         'credentials_path' => env('GOOGLE_CALENDAR_CREDENTIALS', storage_path('app/google-calendar-credentials.json')),
         'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),

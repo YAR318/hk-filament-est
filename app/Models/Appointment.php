@@ -19,12 +19,14 @@ class Appointment extends Model
         'meet_link',
         'notes',
         'reminder_24h_sent',
+        'reminder_8h_sent',
         'reminder_1h_sent',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
         'reminder_24h_sent' => 'boolean',
+        'reminder_8h_sent' => 'boolean',
         'reminder_1h_sent' => 'boolean',
     ];
 
@@ -61,9 +63,22 @@ class Appointment extends Model
         return $query->where('status', self::STATUS_SCHEDULED)
             ->where('reminder_24h_sent', false)
             ->whereBetween('scheduled_at', [
-            now()->addHours(23),
-            now()->addHours(25),
-        ]);
+                now()->addHours(23),
+                now()->addHours(25),
+            ]);
+    }
+
+    /**
+     * Citas que necesitan recordatorio de 8h
+     */
+    public function scopeNeedsReminder8h(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_SCHEDULED)
+            ->where('reminder_8h_sent', false)
+            ->whereBetween('scheduled_at', [
+                now()->addHours(7)->addMinutes(30),
+                now()->addHours(8)->addMinutes(30),
+            ]);
     }
 
     /**
@@ -74,9 +89,9 @@ class Appointment extends Model
         return $query->where('status', self::STATUS_SCHEDULED)
             ->where('reminder_1h_sent', false)
             ->whereBetween('scheduled_at', [
-            now()->addMinutes(50),
-            now()->addMinutes(70),
-        ]);
+                now()->addMinutes(50),
+                now()->addMinutes(70),
+            ]);
     }
 
     /**

@@ -121,6 +121,8 @@ class ChatHistoryController extends Controller
      */
     public function processIncomingMessage(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info('processIncomingMessage request:', $request->all());
+
         // Extraer datos del request
         $phoneNumber = $request->input('phone_number');
         $messageBody = $request->input('message_body');
@@ -128,6 +130,8 @@ class ChatHistoryController extends Controller
         $remoteJid = $request->input('remote_jid', '');
         $fromMe = $request->input('from_me', false);
         $userName = $request->input('user_name', 'Cliente');
+        $instanceName = $request->input('instance_name', 'HunabkuBot');
+        $channel = $request->input('channel', 'evolution');
 
         // Validación básica
         if (!$phoneNumber || !$messageBody) {
@@ -170,6 +174,8 @@ class ChatHistoryController extends Controller
             'phone' => $phoneClean,
             'user_name' => $userName,
             'remote_jid' => $remoteJid,
+            'instance_name' => $instanceName,
+            'channel' => $channel,
             'history' => $history
         ]);
     }

@@ -48,7 +48,7 @@ class ConnectWhatsapp extends Page
     public function mount(): void
     {
         // Pre-cargar valores por defecto para el formulario
-        $this->newWebhookUrl = 'http://host.docker.internal:5678/webhook/whatsapp';
+        $this->newWebhookUrl = 'http://n8n:5678/webhook/whatsapp-v2';
         $this->newInstanceName = config('services.evolution.instance', 'HunabkuBot');
         $this->refreshStatus();
     }
@@ -61,26 +61,26 @@ class ConnectWhatsapp extends Page
         try {
             $service = app(EvolutionService::class);
 
+            // Get instance info first, as it's the most reliable way to know if it exists in v2
+            $info = $service->getInstanceInfo();
+
+            // If the instance doesn't exist (deleted), getInstanceInfo returns an empty array []
+            if (empty($info) || isset($info['error'])) {
+                $this->instanceExists = false;
+                $this->connectionState = 'not_found';
+                $this->qrCode = null;
+                return;
+            }
+
+            $this->instanceExists = true;
+
             // Get connection state
             $stateData = $service->getConnectionState();
             $state = $stateData['instance']['state'] ?? 'unknown';
 
-            // Detectar si la instancia no existe (404 o error)
-            if ($state === 'error' || $state === 'unknown') {
-                // Intentar obtener info para confirmar que existe
-                $info = $service->getInstanceInfo();
-                if (empty($info) || isset($info['error'])) {
-                    $this->instanceExists = false;
-                    $this->connectionState = 'not_found';
-                    return;
-                }
-            }
-
-            $this->instanceExists = true;
+            // For v2, if fetchInstances worked but connectionState says 'close', it might be disconnected
             $this->connectionState = $state;
 
-            // Get instance info
-            $info = $service->getInstanceInfo();
             $instance = $info['instance'] ?? [];
             $this->profileName = $instance['profileName'] ?? null;
             $this->profilePic = $instance['profilePictureUrl'] ?? null;
@@ -93,13 +93,13 @@ class ConnectWhatsapp extends Page
 
             // If disconnected, try to get QR
             if ($this->connectionState !== 'open') {
-                $this->fetchQR();
-            }
-            else {
+                if (empty($this->qrCode)) {
+                    $this->fetchQR();
+                }
+            } else {
                 $this->qrCode = null;
             }
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             $this->connectionState = 'error';
             \Illuminate\Support\Facades\Log::error('Error en refreshStatus: ' . $e->getMessage());
         }
@@ -115,6 +115,20 @@ class ConnectWhatsapp extends Page
 
         // Evolution API returns base64 QR in different formats depending on version
         $this->qrCode = $qrData['base64'] ?? $qrData['qrcode'] ?? null;
+    }
+
+    /**
+     * Manually request a new QR and notify the user
+     */
+    public function regenerateQR(): void
+    {
+        $this->fetchQR();
+
+        \Filament\Notifications\Notification::make()
+            ->title('QR Solicitado')
+            ->body('Si el código anterior no había expirado, verás el mismo código. De lo contrario, se ha actualizado.')
+            ->info()
+            ->send();
     }
 
     /**
@@ -159,6 +173,11 @@ class ConnectWhatsapp extends Page
             ->success()
             ->send();
 
+        // Capture the immediate QR code returned on creation
+        if (isset($result['qrcode']['base64'])) {
+            $this->qrCode = $result['qrcode']['base64'];
+        }
+
         $this->showCreateForm = false;
         sleep(1);
         $this->refreshStatus();
@@ -178,20 +197,21 @@ class ConnectWhatsapp extends Page
 
         $service = app(EvolutionService::class);
         $instanceName = config('services.evolution.instance', 'HunabkuBot');
-        $result = $service->setWebhook($instanceName, $this->newWebhookUrl);
 
-        if ($result) {
+        $webhookResult = $service->setWebhook($instanceName, $this->newWebhookUrl);
+        $settingsResult = $service->setSettings($instanceName);
+
+        if ($webhookResult && $settingsResult) {
             \Filament\Notifications\Notification::make()
-                ->title('Webhook configurado')
-                ->body("Webhook configurado correctamente en \"{$instanceName}\".")
+                ->title('Configuración Completa')
+                ->body("Webhook y configuraciones aplicadas correctamente en \"{$instanceName}\".")
                 ->success()
                 ->send();
             $this->showCreateForm = false;
-        }
-        else {
+        } else {
             \Filament\Notifications\Notification::make()
-                ->title('Error al configurar webhook')
-                ->body('No se pudo configurar el webhook. Revisa los logs.')
+                ->title('Error de configuración')
+                ->body('Hubo un problema al configurar el webhook o los ajustes. Revisa los logs.')
                 ->danger()
                 ->send();
         }
@@ -211,8 +231,7 @@ class ConnectWhatsapp extends Page
                 ->body('La instancia fue eliminada de Evolution API.')
                 ->success()
                 ->send();
-        }
-        else {
+        } else {
             \Filament\Notifications\Notification::make()
                 ->title('Error')
                 ->body('No se pudo eliminar la instancia.')
@@ -238,8 +257,7 @@ class ConnectWhatsapp extends Page
                 ->body('La instancia se ha desvinculado correctamente.')
                 ->success()
                 ->send();
-        }
-        else {
+        } else {
             \Filament\Notifications\Notification::make()
                 ->title('Error')
                 ->body('No se pudo desconectar la instancia.')
@@ -266,8 +284,7 @@ class ConnectWhatsapp extends Page
                 ->body('La instancia se está reiniciando...')
                 ->success()
                 ->send();
-        }
-        else {
+        } else {
             \Filament\Notifications\Notification::make()
                 ->title('Error')
                 ->body('No se pudo reiniciar la instancia.')
