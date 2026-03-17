@@ -97,6 +97,21 @@
                 <a href="{{ $appointment->meet_link }}" class="meet-btn"> Unirse a Google Meet</a>
             </p>
             @endif
+
+            @php
+                $startUtc = $appointment->scheduled_at->copy()->timezone('UTC')->format('Ymd\THis\Z');
+                $endUtc = $appointment->scheduled_at->copy()->addMinutes($appointment->duration_minutes)->timezone('UTC')->format('Ymd\THis\Z');
+                
+                $title = urlencode('Cita Confirmada - ' . config('app.name', 'HunabKu'));
+                $details = urlencode("👤 Cliente: {$appointment->client_name}\n📞 Teléfono: {$appointment->client_phone}\n\nDetalles adicionales de la cita reservada.");
+                $location = $appointment->meet_link ? urlencode($appointment->meet_link) : '';
+                
+                $calendarUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE&text={$title}&dates={$startUtc}/{$endUtc}&details={$details}&location={$location}";
+            @endphp
+            
+            <p style="text-align: center;">
+                <a href="{{ $calendarUrl }}" target="_blank" style="display: inline-block; background: #ffffff; color: #4b5563; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 500; font-size: 14px; border: 1px solid #d1d5db; margin-top: 10px;">📅 Agregar a mi Google Calendar</a>
+            </p>
         </div>
         <div class="footer">
             <p>HunabKu - Sistema de Gestión de Citas</p>
