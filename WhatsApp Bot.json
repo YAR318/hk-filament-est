@@ -498,23 +498,21 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://hk-filament/api/whatsapp/send-meta",
+        "url": "=https://graph.facebook.com/v21.0/{{ $vars.META_PHONE_ID }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
-            },
-            {
-              "name": "Host",
-              "value": "hk-filament.local.com"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone_number\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.text) }}\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"preview_url\": false,\n    \"body\": {{ JSON.stringify($json.text) }}\n  }\n}",
         "options": {}
       },
       "name": "Enviar Meta",
