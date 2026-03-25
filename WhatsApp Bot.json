@@ -1,0 +1,1145 @@
+{
+  "name": "WhatsApp Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-v2",
+        "options": {}
+      },
+      "name": "Webhook Evolution",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -2144,
+        192
+      ],
+      "id": "2e2fd44e-e3ba-440d-b92d-fb0cc16d1d3a",
+      "webhookId": "cd185b5e-4aa7-4167-bd7b-daaab8b093c0"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-meta",
+        "options": {}
+      },
+      "name": "Webhook Meta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -2144,
+        432
+      ],
+      "id": "92fe69e9-20d2-4a96-940d-89b5899d135d",
+      "webhookId": "7265bbb9-d683-4f35-aeb5-9d3a9d60543a"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════════════\n// EXTRAER DATOS BÁSICOS - EVOLUTION API (v2)\n// ═══════════════════════════════════════════════════════════════\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// FILTRO CRÍTICO: Solo procesar mensajes reales (messages.upsert)\n// Esto ignora: SEND_MESSAGE (eco del bot), CONNECTION_UPDATE, etc.\nconst event = body.event || '';\nif (event !== 'messages.upsert') {\n    return [{ json: { skip: true, reason: 'Evento ignorado: ' + event } }];\n}\n\nconst payloadData = body.data || body;\n\n// Dependiendo del evento, data puede tener ya el key/message, o tenerlos dentro de data.message\nconst msgObj = payloadData.message && payloadData.message.key ? payloadData.message : payloadData;\n\nconst key = msgObj.key || {};\nconst message = msgObj.message || {};\n\n// ═══════════════════════════════════════════════════════════════\n// FILTRO ANTI-LOOP ROBUSTO: Verificar multiples ubicaciones de fromMe\n// Evolution API v2 puede poner fromMe en diferentes lugares\n// ═══════════════════════════════════════════════════════════════\nconst isFromMe = key.fromMe === true || \n                 payloadData.fromMe === true || \n                 msgObj.fromMe === true ||\n                 (key.fromMe !== undefined && key.fromMe !== false);\n\nif (isFromMe) {\n    return [{ json: { skip: true, reason: 'Mensaje propio (fromMe)' } }];\n}\n\n// Filtro adicional: si status es 2 (mensaje enviado por nosotros)\nif (msgObj.status === 2 || payloadData.status === 2) {\n    return [{ json: { skip: true, reason: 'Mensaje con status=2 (enviado)' } }];\n}\n\nlet targetJid = key.remoteJid || '';\n\n// Filtrar mensajes de status/broadcast\nif (targetJid === 'status@broadcast' || targetJid.endsWith('@g.us')) {\n    return [{ json: { skip: true, reason: 'Mensaje de status o grupo ignorado' } }];\n}\n\nlet phoneRaw = targetJid.replace('@s.whatsapp.net', '').replace(/\\\\D/g, '');\nif (phoneRaw.length === 10) phoneRaw = '52' + phoneRaw;\n\nlet textContent = '';\nif (message.conversation) textContent = message.conversation;\nelse if (message.extendedTextMessage?.text) textContent = message.extendedTextMessage.text;\nelse if (message.imageMessage?.caption) textContent = message.imageMessage.caption;\nelse return [{ json: { skip: true, reason: 'Tipo de mensaje no texto' } }];\n\n// Filtro final: ignorar mensajes vacios\nif (!textContent || textContent.trim() === '') {\n    return [{ json: { skip: true, reason: 'Mensaje vacio' } }];\n}\n\nreturn [{\n  json: {\n    phone_number: phoneRaw,\n    message_body: textContent,\n    message_id: key.id || '',\n    remote_jid: targetJid,\n    from_me: false,\n    user_name: msgObj.pushName || payloadData.pushName || body.pushName || 'Cliente',\n    instance_name: body.instance || 'HunabkuBot',\n    channel: 'evolution'\n  }\n}];"
+      },
+      "name": "Extraer Datos Evolution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        192
+      ],
+      "id": "25090b71-f1a1-4831-9498-e052fc9bc7fa"
+    },
+    {
+      "parameters": {
+        "jsCode": "// EXTRAER DATOS - META WHATSAPP API\n// Laravel ya pre-extrae los datos del payload de Meta\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\nconst phoneNumber = body.phone_number || '';\nconst messageText = body.message_body || '';\nconst contactName = body.user_name || 'Cliente';\nconst messageId = body.message_id || '';\nconst channel = body.channel || 'meta';\n\nif (!phoneNumber || !messageText) {\n    return [{ json: { skip: true, reason: 'Mensaje Meta incompleto' } }];\n}\n\nlet phoneRaw = phoneNumber.replace(/\\D/g, '');\nif (phoneRaw.length === 10) phoneRaw = '52' + phoneRaw;\n\nreturn [{\n  json: {\n    phone_number: phoneRaw,\n    message_body: messageText,\n    message_id: messageId,\n    remote_jid: phoneNumber,\n    from_me: false,\n    user_name: contactName,\n    instance_name: 'MetaAPI',\n    channel: channel\n  }\n}];"
+      },
+      "name": "Extraer Datos Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1968,
+        432
+      ],
+      "id": "57c0d778-0811-4ee9-a53e-a1b48cf2c09d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip }}",
+              "operation": "notEqual",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Filtrar Skip",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1808,
+        192
+      ],
+      "id": "25311cdb-b144-47be-9b76-fde342a6bcf9"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hk-filament/api/chat/process-message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone_number\": \"{{ $json.phone_number || '' }}\",\n  \"message_body\": {{ JSON.stringify($json.message_body || '') }},\n  \"message_id\": \"{{ $json.message_id || '' }}\",\n  \"remote_jid\": \"{{ $json.remote_jid || '' }}\",\n  \"from_me\": {{ $json.from_me ? true : false }},\n  \"user_name\": {{ JSON.stringify($json.user_name || 'Cliente') }},\n  \"instance_name\": \"{{ $json.instance_name || 'HunabkuBot' }}\",\n  \"channel\": \"{{ $json.channel || 'evolution' }}\"\n}",
+        "options": {}
+      },
+      "name": "Validar en Laravel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -1696,
+        304
+      ],
+      "id": "c084b4e0-ba06-4b97-a87f-0fd28458ff62"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.process }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Procesar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1488,
+        304
+      ],
+      "id": "719c7612-4e4c-4d2e-8428-a83e2cfade7b"
+    },
+    {
+      "parameters": {
+        "url": "http://hk-filament/api/knowledge-base",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Obtener Contexto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -1376,
+        304
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener datos del mensaje (viene de Procesar?)\nconst inputData = $('Procesar?').first().json;\nconst historyArray = inputData.history || [];\n\n// Obtener contexto de la base de conocimiento\nconst kbData = $('Obtener Contexto').first().json;\nconst knowledgeContext = kbData.context || '';\n\n// Usar horario Mexico/Guadalajara (UTC-6)\nconst now = new Date();\nconst mexicoOffset = -6;\nconst mexicoTime = new Date(now.getTime() + (mexicoOffset * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));\nconst dateStr = mexicoTime.toISOString().split('T')[0];\nconst timeStr = mexicoTime.toTimeString().split(' ')[0].substring(0,5);\nconst dayNames = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];\nconst dayName = dayNames[mexicoTime.getDay()];\n\n// Generar mapa explicito de dias de la semana con sus fechas\nlet dayDateMap = '';\nfor (let i = 0; i < 7; i++) {\n    const d = new Date(mexicoTime.getTime() + (i * 24 * 60 * 60 * 1000));\n    const dName = dayNames[d.getDay()];\n    const dDate = d.toISOString().split('T')[0];\n    const label = i === 0 ? '(hoy)' : i === 1 ? '(manana)' : '';\n    dayDateMap += `- ${dName} ${label}: ${dDate}\\n`;\n}\n\nconst systemMessage = {\n    role: 'system',\n    content: `Eres un asistente conversacional de WhatsApp. Eres un asistente profesional, formal y muy educado. SIEMPRE debes tratar al usuario de \"usted\". No uses jerga ni lenguaje coloquial.\n\nINFORMACION DE CONTEXTO (Base de Conocimiento):\n${knowledgeContext}\n\nREGLAS IMPORTANTES DE CONVERSACION:\n- Utiliza un tono profesional, respetuoso y formal en todo momento. Dirigete al usuario de \"usted\".\n- TUS MENSAJES DEBEN SER MUY CORTOS Y CONCISOS. Maximo 2 oraciones por respuesta. Debes sonar como un humano atendiendo por WhatsApp, no como un robot escribiendo ensayos.\n- NUNCA repitas el mismo saludo. Si ya saludaste antes en el historial, NO vuelvas a saludar.\n- Si el usuario pregunta \"que haces\" o \"en que puedes ayudar\", responde de manera breve y profesional: puedes agendar citas y responder preguntas.\n- Lee el historial de la conversacion y responde de forma coherente con lo que ya se dijo.\n- Ve directo al punto. No des explicaciones largas a menos que te lo pidan.\n- Varia tus respuestas, no uses siempre las mismas frases.\n\nCAPACIDADES DE CITAS:\n- Puedes agendar, cancelar y reagendar citas para los clientes\n- El horario de atencion es configurable (por defecto 9:00 a 17:00, lunes a viernes)\n- Solo se permite UNA cita activa por cliente\n- Al agendar, SIEMPRE pide el correo electronico del cliente para enviarle un recordatorio por email\n\nFECHA Y HORA ACTUAL:\n- Fecha: ${dateStr}\n- Hora: ${timeStr}\n- Dia: ${dayName}\n\nCALENDARIO DE ESTA SEMANA (usa estas fechas exactas, NO calcules tu):\n${dayDateMap}\nINSTRUCCIONES PARA CITAS:\nCuando detectes que el cliente quiere agendar, cancelar, reagendar o consultar disponibilidad, responde UNICAMENTE con un JSON en este formato exacto (sin texto adicional, sin markdown, sin backticks):\n\nPara AGENDAR una cita (IMPORTANTE: necesitas nombre, fecha, hora Y email):\n{\"action\":\"appointment_create\",\"date\":\"YYYY-MM-DD\",\"time\":\"HH:MM\",\"name\":\"nombre del cliente\",\"email\":\"correo@ejemplo.com\"}\n\nPara CANCELAR una cita:\n{\"action\":\"appointment_cancel\"}\n\nPara REAGENDAR una cita:\n{\"action\":\"appointment_reschedule\",\"date\":\"YYYY-MM-DD\",\"time\":\"HH:MM\"}\n\nPara CONSULTAR DISPONIBILIDAD de un dia especifico:\n{\"action\":\"appointment_available\",\"date\":\"YYYY-MM-DD\"}\n\nPara VER PROXIMOS HORARIOS DISPONIBLES (cuando no dicen fecha):\n{\"action\":\"appointment_next_available\"}\n\nREGLAS CRITICAS (MUY IMPORTANTE):\n1. SOLO responde con JSON cuando el usuario EXPLICITAMENTE pida una accion de citas\n2. Mensajes como \"hola\", \"puedes ayudarme?\", \"tengo cita?\" son preguntas NORMALES, responde con TEXTO plano\n3. NUNCA asumas ni inventes fechas u horas. Si el usuario pide agendar pero NO especifica el dia o la hora exacta, NO USES EL JSON. Responde con texto plano preguntandole a que hora y que dia le gustaria la cita.\n4. SOLO usa appointment_cancel cuando digan EXPLICITAMENTE: \"cancela mi cita\", \"quiero cancelar\", \"no quiero la cita\"\n5. NUNCA canceles una cita si solo PREGUNTAN sobre su cita\n6. Cuando digan \"manana\", \"el lunes\", USA EL CALENDARIO DE ARRIBA\n7. Si preguntan \"que dias tienes disponibles\", usa appointment_next_available\n8. Para agendar, SIEMPRE pregunta el nombre completo del cliente. NO uses el nombre de contacto de WhatsApp directamente, pregunta: como te llamas? o a nombre de quien sera la cita?\\n9. Para agendar, SIEMPRE pregunta tambien por el correo electronico del cliente. El email es necesario para enviarles un recordatorio por email. Necesitas nombre, fecha, hora Y email antes de generar el JSON de appointment_create.\n\nCONTEXTO ACTUAL:\n- Estas hablando con: ${inputData.user_name} (Tel: ${inputData.phone}).`\n};\n\nlet groqMessages = [systemMessage];\n\nif (Array.isArray(historyArray)) {\n    for (const msg of historyArray) {\n        groqMessages.push({\n            role: msg.role === 'user' ? 'user' : 'assistant',\n            content: msg.content\n        });\n    }\n}\n\nreturn [{ json: { groqMessages, phone: inputData.phone, userName: inputData.user_name, remoteJid: inputData.remote_jid, instanceName: inputData.instance_name || 'HunabkuBot', channel: inputData.channel || 'evolution' } }];"
+      },
+      "name": "Formatear para AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        304
+      ],
+      "id": "1eed3890-ceec-4a04-93d4-fd17b581d981"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": {{ JSON.stringify($json.groqMessages) }},\n  \"temperature\": 0.7,\n  \"max_tokens\": 800\n}",
+        "options": {}
+      },
+      "name": "Groq AI (70b)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -1040,
+        304
+      ],
+      "id": "eb43cfd9-d4f3-4b7a-a884-40e0947336ac",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "B5vmPCw07aRlPWbI",
+          "name": "Groq api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const groqResponse = $input.first().json;\nconst content = groqResponse.choices?.[0]?.message?.content || '';\n\nlet actionData = null;\ntry {\n    const jsonMatch = content.match(/\\{[\\s\\S]*\"action\"[\\s\\S]*\\}/);\n    if (jsonMatch) {\n        actionData = JSON.parse(jsonMatch[0]);\n    }\n} catch(e) {}\n\nconst phone = $('Formatear para AI').item.json.phone || '';\nconst userName = $('Formatear para AI').item.json.userName || 'Cliente';\nconst remoteJid = $('Formatear para AI').item.json.remoteJid || '';\nconst instanceName = $('Formatear para AI').item.json.instanceName || 'HunabkuBot';\nconst channel = $('Formatear para AI').item.json.channel || 'evolution';\nconst tokensUsed = groqResponse.usage?.total_tokens || 0;\n\nif (actionData && actionData.action) {\n    // Remap appointment_next_available to appointment_available (sin date)\n    let action = actionData.action;\n    if (action === 'appointment_next_available') {\n        action = 'appointment_available';\n    }\n    if (action === 'appointment_create' && (!actionData.date || !actionData.time)) {\n        return [{ json: { isAction: false, text: '¡Claro! Por favor dime qué día y a qué hora te gustaría tu cita.', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n    if (action === 'appointment_create' && !actionData.email) {\n        return [{ json: { isAction: false, text: '¡Casi listo! Solo necesito tu correo electrónico para enviarte un recordatorio de la cita. 📧', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n    if (action === 'appointment_reschedule' && (!actionData.date || !actionData.time)) {\n        return [{ json: { isAction: false, text: '¡Claro! Por favor dime la nueva fecha y hora para reagendar tu cita.', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n\n    return [{\n        json: {\n            isAction: true,\n            action: action,\n            date: actionData.date || null,\n            time: actionData.time || null,\n            name: actionData.name || userName,\n            email: actionData.email || null,\n            phone, userName, remoteJid, instanceName, channel, tokensUsed,\n            originalContent: content\n        }\n    }];\n} else {\n    return [{\n        json: {\n            isAction: false,\n            text: content,\n            phone, userName, remoteJid, instanceName, channel, tokensUsed\n        }\n    }];\n}"
+      },
+      "name": "Detectar Accion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        304
+      ],
+      "id": "fac5f84e-c7df-46f2-ac45-bf91e2e0a5ea"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isAction }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Es Accion?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        304
+      ],
+      "id": "c0d12b28-cabe-4369-b84c-c05572accfc7"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.action }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "appointment_create"
+            },
+            {
+              "value2": "appointment_cancel",
+              "output": 1
+            },
+            {
+              "value2": "appointment_reschedule",
+              "output": 2
+            },
+            {
+              "value2": "appointment_available",
+              "output": 3
+            }
+          ]
+        }
+      },
+      "name": "Switch Accion",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        192
+      ],
+      "id": "2e16a0a7-bea7-45a0-957b-8e1312c6d527"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hk-filament/api/appointments/create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"client_name\": {{ JSON.stringify($json.name) }},\n  \"client_phone\": \"{{ $json.phone }}\",\n  \"client_email\": {{ JSON.stringify($json.email || '') }},\n  \"scheduled_at\": \"{{ $json.date }} {{ $json.time }}:00\",\n  \"duration_minutes\": 30\n}",
+        "options": {}
+      },
+      "name": "Crear Cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -96,
+        -16
+      ],
+      "id": "f3e8c1c9-e335-41c0-ad16-fecaca90735e",
+      "onError": "continueRegardlessOfErrors"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hk-filament/api/appointments/cancel",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"client_phone\": \"{{ $json.phone }}\"\n}",
+        "options": {}
+      },
+      "name": "Cancelar Cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -96,
+        192
+      ],
+      "id": "49add118-58f6-48d6-b88b-264b2a315278",
+      "onError": "continueRegardlessOfErrors"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hk-filament/api/appointments/reschedule",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"client_phone\": \"{{ $json.phone }}\",\n  \"new_scheduled_at\": \"{{ $json.date }} {{ $json.time }}:00\"\n}",
+        "options": {}
+      },
+      "name": "Reagendar Cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -96,
+        384
+      ],
+      "id": "3ad375ad-778e-4007-9afa-ce325d5df59d",
+      "onError": "continueRegardlessOfErrors"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.date ? 'http://hk-filament/api/appointments/available/' + $json.date : 'http://hk-filament/api/appointments/next-slots' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Consultar Disponibilidad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -96,
+        592
+      ],
+      "id": "32b7045a-7b34-4633-b041-f8feac7053c6"
+    },
+    {
+      "parameters": {
+        "url": "http://hk-filament/api/appointments/next-available",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Consultar Proximos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -96,
+        784
+      ],
+      "id": "06a2202c-6825-42a4-8678-3a4aa8adeb6b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Detectar de qué nodo viene el resultado principal (Crear, Cancelar o Reagendar)\nlet result = {};\ntry { result = $('Crear Cita').item.json; } catch(e) {}\ntry { if (!result.success) result = $('Cancelar Cita').item.json; } catch(e) {}\ntry { if (!result.success) result = $('Reagendar Cita').item.json; } catch(e) {}\ntry { if (!result.success) result = $('Consultar Disponibilidad').item.json; } catch(e) {}\ntry { if (!result.success) result = $('Consultar Proximos').item.json; } catch(e) {}\n\n// Si fallaron las alternativas, usa el input crudo (por si hay un error)\nif (Object.keys(result).length === 0) {\n    result = $input.first().json;\n}\n\nconst actionNode = $('Detectar Accion');\nconst action = actionNode.first().json.action;\nconst phone = actionNode.first().json.phone;\nconst remoteJid = actionNode.first().json.remoteJid;\nconst instanceName = actionNode.first().json.instanceName;\nconst channel = actionNode.first().json.channel;\nconst tokensUsed = actionNode.first().json.tokensUsed;\nlet message = '';\n\nif (result.success) {\n    switch(action) {\n        case 'appointment_create':\n            message = `✅ ¡Cita agendada!\\n📅 ${result.data.scheduled_at}`;\n            if (result.data.meet_link) message += `\\n📹 Google Meet: ${result.data.meet_link}`;\n            message += '\\n\\nSi necesitas cancelar o reagendar, solo escribeme.';\n            break;\n        case 'appointment_cancel':\n            message = `❌ Tu cita ha sido cancelada.\\n📅 Era para: ${result.data.scheduled_at}\\n\\nSi quieres agendar una nueva, solo avisame.`;\n            break;\n        case 'appointment_reschedule':\n            message = `🔄 ¡Cita reagendada!\\n📅 Nueva fecha: ${result.data.scheduled_at}`;\n            if (result.data.meet_link) message += `\\n📹 Google Meet: ${result.data.meet_link}`;\n            break;\n        case 'appointment_available':\n            if (result.data && result.data.days && result.data.days.length > 0) {\n                message = '📅 Proximos horarios disponibles:\\n';\n                for (const day of result.data.days) {\n                    const slotsPreview = day.available_slots.slice(0, 6).join(', ');\n                    const more = day.available_slots.length > 6 ? ` y ${day.available_slots.length - 6} mas` : '';\n                    message += `\\n📌 ${day.day_name} ${day.date_display}: ${slotsPreview}${more}`;\n                }\n                message += '\\n\\n¿Que dia y hora te conviene?';\n            } else if (result.data && result.data.total_available > 0) {\n                message = ` Horarios disponibles para el ${result.data.date} (${result.data.day_name}):\\n\\n`;\n                message += result.data.available_slots.join(', ');\n                message += '\\n\\n¿A que hora te gustaria tu cita?';\n            } else {\n                message = '😕 No hay horarios disponibles para esa fecha.\\n¿Quieres probar otro dia?';\n            }\n            break;\n        default:\n            message = result.message || 'Solicitud procesada.';\n    }\n} else {\n    // Extraer error si viene envuelto por n8n en result.error.description\n    let errorMsg = result.message;\n    if (result.error && typeof result.error.description === 'string') {\n        try {\n            const parsed = JSON.parse(result.error.description);\n            errorMsg = parsed.message || result.error.message;\n        } catch(e) {\n            errorMsg = result.error.description || result.error.message;\n        }\n    }\n    message = errorMsg || 'Hubo un problema procesando tu solicitud. Por favor intenta de nuevo con otro horario o formato.';\n}\n\nreturn [{ json: { text: message, phone, remoteJid, instanceName, channel, tokensUsed } }];"
+      },
+      "name": "Formatear Respuesta Cita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        432
+      ],
+      "id": "41a19af0-9ff9-43b7-81d5-a959d0907287"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { text: input.text, phone: input.phone, remoteJid: input.remoteJid, instanceName: input.instanceName, channel: input.channel, tokensUsed: input.tokensUsed } }];"
+      },
+      "name": "Preparar Texto Normal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        1008
+      ],
+      "id": "229f0397-a8d3-4984-9315-1d15c881b405"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.channel }}",
+              "value2": "meta"
+            }
+          ]
+        }
+      },
+      "name": "Canal?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        976,
+        608
+      ],
+      "id": "67f3b8f0-1fe2-46b2-90ad-4435eae7a2e1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://evolution_api:8080/message/sendText/{{ $json.instanceName }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "evolution123"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.remoteJid }}\",\n  \"options\": {\n    \"delay\": {{ Math.min(Math.max($json.text.length * 50, 2000), 7000) }},\n    \"presence\": \"composing\"\n  },\n  \"text\": {{ JSON.stringify($json.text) }}\n}",
+        "options": {}
+      },
+      "name": "Enviar Evolution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1232,
+        672
+      ],
+      "id": "759f4edd-7c45-421e-a963-40fb8a57eb3e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hk-filament/api/whatsapp/send-meta",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone_number\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.text) }}\n}",
+        "options": {}
+      },
+      "name": "Enviar Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1232,
+        512
+      ],
+      "id": "d6ca5c2b-9236-4c3a-84e2-f3d8f9e6be24"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hk-filament/api/chat/save-response",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone_number\": \"{{ $('Canal?').item.json.phone }}\",\n  \"response\": {{ JSON.stringify($('Canal?').item.json.text) }},\n  \"metadata\": { \"tokens_used\": {{ $('Canal?').item.json.tokensUsed || 0 }}, \"model\": \"llama-3.3-70b\" }\n}",
+        "options": {}
+      },
+      "name": "Guardar Respuesta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1472,
+        592
+      ],
+      "id": "021b7411-4433-4942-b11d-331d1327fda1"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "yeremigamer555@gmail.com",
+          "mode": "list",
+          "cachedResultName": "yeremigamer555@gmail.com"
+        },
+        "start": "={{ $('Detectar Accion').item.json.date + 'T' + $('Detectar Accion').item.json.time + ':00-06:00' }}",
+        "end": "={{ new Date(new Date($('Detectar Accion').item.json.date + 'T' + $('Detectar Accion').item.json.time + ':00-06:00').getTime() + 30 * 60000).toISOString() }}",
+        "additionalFields": {
+          "attendees": "={{ $('Detectar Accion').item.json.email || '' }}",
+          "conferenceDataUi": {
+            "conferenceDataValues": {
+              "conferenceSolution": "hangoutsMeet"
+            }
+          },
+          "description": "={{ 'Cita con ' + $('Detectar Accion').item.json.name + '\nTel: ' + $('Detectar Accion').item.json.phone + '\nDuración: 30 minutos' }}",
+          "sendUpdates": "all",
+          "summary": "={{ 'Cita: ' + $('Detectar Accion').item.json.name }}"
+        }
+      },
+      "name": "Create an event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        272,
+        -96
+      ],
+      "id": "8d407816-0d04-4dd9-90d9-5096e7d7f2eb",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "h5FGe04MlnHhGmVD",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hk-filament/api/appointments/sync-calendar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"appointment_id\": \"{{ $('Crear Cita').item.json.data.id }}\",\n  \"google_event_id\": \"{{ $json.id }}\",\n  \"meet_link\": \"{{ $json.hangoutLink }}\"\n}",
+        "options": {}
+      },
+      "name": "Sync Calendar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        480,
+        -16
+      ],
+      "id": "b0cda4ee-7446-4ce2-85f3-b62bac8ec76f"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "yeremigamer555@gmail.com",
+          "mode": "list",
+          "cachedResultName": "yeremigamer555@gmail.com"
+        },
+        "eventId": "={{ $json.data.google_event_id }}",
+        "options": {}
+      },
+      "name": "Google Calendar Delete",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        272,
+        96
+      ],
+      "id": "01dce360-82a7-4f5d-83ad-3b5a66594f21",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "h5FGe04MlnHhGmVD",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "yeremigamer555@gmail.com",
+          "mode": "list",
+          "cachedResultName": "yeremigamer555@gmail.com"
+        },
+        "eventId": "={{ $json.data.google_event_id }}",
+        "updateFields": {}
+      },
+      "name": "Google Calendar Update",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        272,
+        304
+      ],
+      "id": "3710d098-2b63-46fc-99c6-a4c6e9fa3bff",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "h5FGe04MlnHhGmVD",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "IF Crear Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -16
+      ],
+      "id": "d480d50c-bfca-4749-a550-aaa87fdaf99c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "IF Cancelar Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        64,
+        192
+      ],
+      "id": "56ea0da7-b63d-4ce5-b09d-0f8524b3b9cf"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "IF Reagendar Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        64,
+        384
+      ],
+      "id": "40ed748a-ac1b-444f-94ba-c9b3e0366979"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Evolution": {
+      "main": [
+        [
+          {
+            "node": "Extraer Datos Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Meta": {
+      "main": [
+        [
+          {
+            "node": "Extraer Datos Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos Evolution": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Skip": {
+      "main": [
+        [
+          {
+            "node": "Validar en Laravel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos Meta": {
+      "main": [
+        [
+          {
+            "node": "Validar en Laravel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar en Laravel": {
+      "main": [
+        [
+          {
+            "node": "Procesar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar?": {
+      "main": [
+        [
+          {
+            "node": "Obtener Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Contexto": {
+      "main": [
+        [
+          {
+            "node": "Formatear para AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear para AI": {
+      "main": [
+        [
+          {
+            "node": "Groq AI (70b)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq AI (70b)": {
+      "main": [
+        [
+          {
+            "node": "Detectar Accion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar Accion": {
+      "main": [
+        [
+          {
+            "node": "Es Accion?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Es Accion?": {
+      "main": [
+        [
+          {
+            "node": "Switch Accion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Texto Normal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Accion": {
+      "main": [
+        [
+          {
+            "node": "Crear Cita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancelar Cita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reagendar Cita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Disponibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Cita": {
+      "main": [
+        [
+          {
+            "node": "IF Crear Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelar Cita": {
+      "main": [
+        [
+          {
+            "node": "IF Cancelar Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reagendar Cita": {
+      "main": [
+        [
+          {
+            "node": "IF Reagendar Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Disponibilidad": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Proximos": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta Cita": {
+      "main": [
+        [
+          {
+            "node": "Canal?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Texto Normal": {
+      "main": [
+        [
+          {
+            "node": "Canal?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Canal?": {
+      "main": [
+        [
+          {
+            "node": "Enviar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Evolution": {
+      "main": [
+        [
+          {
+            "node": "Guardar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Meta": {
+      "main": [
+        [
+          {
+            "node": "Guardar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Sync Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync Calendar": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar Delete": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar Update": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Crear Success": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Cancelar Success": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar Delete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Reagendar Success": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "8c78843a-2e2d-4fa6-96f0-ff7bf02c0ae9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "47aaa4f13e72cf8219038e9fd90a69057f909006ecfd7994080e6e20271a2820"
+  },
+  "id": "QQevkCEq4nidQPbm",
+  "tags": []
+}
