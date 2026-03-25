@@ -37,6 +37,7 @@ class Appointment extends Model
     const STATUS_CANCELLED = 'cancelled';
     const STATUS_COMPLETED = 'completed';
     const STATUS_RESCHEDULED = 'rescheduled';
+    const STATUS_MISSED = 'missed';
 
     /**
      * Citas próximas (no canceladas)
@@ -45,6 +46,16 @@ class Appointment extends Model
     {
         return $query->where('scheduled_at', '>=', now())
             ->where('status', self::STATUS_SCHEDULED);
+    }
+
+    /**
+     * Marcar citas pasadas como "perdidas" automáticamente
+     */
+    public static function markMissedAppointments(): int
+    {
+        return static::where('status', self::STATUS_SCHEDULED)
+            ->where('scheduled_at', '<', now())
+            ->update(['status' => self::STATUS_MISSED]);
     }
 
     /**

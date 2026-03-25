@@ -43,10 +43,27 @@ class AppointmentController
         }
 
         try {
-            $appointment = $this->appointmentService->create($validator->validated());
+            $result = $this->appointmentService->create($validator->validated());
+            $appointment = $result['appointment'];
+
+            if ($result['already_exists']) {
+                return response()->json([
+                    'success' => true,
+                    'already_exists' => true,
+                    'message' => $result['message'],
+                    'data' => [
+                        'id' => $appointment->id,
+                        'client_name' => $appointment->client_name,
+                        'scheduled_at' => $appointment->scheduled_at->format('d/m/Y H:i'),
+                        'meet_link' => $appointment->meet_link,
+                        'status' => $appointment->status,
+                    ],
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
+                'already_exists' => false,
                 'message' => 'Cita creada exitosamente',
                 'data' => [
                     'id' => $appointment->id,

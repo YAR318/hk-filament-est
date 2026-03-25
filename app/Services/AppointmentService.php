@@ -86,9 +86,12 @@ class AppointmentService
     /**
      * Crear una nueva cita
      */
-    public function create(array $data): Appointment
+    public function create(array $data): array
     {
         $scheduledAt = Carbon::parse($data['scheduled_at']);
+
+        // Auto-expirar citas pasadas que siguen como "scheduled"
+        Appointment::markMissedAppointments();
 
         // Verificar si el cliente ya tiene una cita activa
         $existingAppointment = Appointment::byPhone($data['client_phone'])
@@ -96,11 +99,13 @@ class AppointmentService
             ->first();
 
         if ($existingAppointment) {
-            throw new \InvalidArgumentException(
-                'Ya tienes una cita programada para el '
-                . $existingAppointment->scheduled_at->format('d/m/Y H:i')
-                . '. Si deseas cambiar la hora, debes reagendar tu cita actual.'
-            );
+            return [
+                'appointment' => $existingAppointment,
+                'already_exists' => true,
+                'message' => 'Ya tienes una cita programada para el '
+                    . $existingAppointment->scheduled_at->format('d/m/Y H:i')
+                    . '. Si deseas cambiar la hora, puedes reagendar o cancelar tu cita actual.',
+            ];
         }
 
         if (!$this->isAvailable($scheduledAt)) {
@@ -133,7 +138,11 @@ class AppointmentService
             'scheduled_at' => $appointment->scheduled_at->toDateTimeString(),
         ]);
 
-        return $appointment;
+        return [
+            'appointment' => $appointment,
+            'already_exists' => false,
+            'message' => 'Cita creada exitosamente',
+        ];
     }
 
     /**
