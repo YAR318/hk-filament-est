@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BlockedPhoneController;
 use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\MetaWebhookController;
+use App\Http\Controllers\Api\KnowledgeBaseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -61,6 +62,9 @@ Route::middleware(['api.key', 'throttle:60,1'])->group(function () {
     Route::post('/appointments/sync-calendar', [AppointmentController::class, 'syncCalendar']);
     Route::get('/appointments/next-slots', [AppointmentController::class, 'nextAvailable']);
     Route::get('/appointments/available/{date}', [AppointmentController::class, 'available']);
+
+    // Base de conocimiento para el bot
+    Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index']);
 
     // Enviar mensaje via Meta WhatsApp API (usado por n8n)
     Route::post(
