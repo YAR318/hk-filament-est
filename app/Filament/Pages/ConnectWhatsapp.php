@@ -122,12 +122,22 @@ class ConnectWhatsapp extends Page
      */
     public function regenerateQR(): void
     {
+        $service = app(EvolutionService::class);
+        
+        // En Evolution API v2, si el QR caducó o el estado quedó colgado, 
+        // necesitamos forzar un cierre de sesión (logout) para que libere la sesión
+        // y nos genere un par de QR completamente nuevo.
+        $service->disconnect();
+        
+        // Pequeña pausa para que Evolution API procese la desconexión
+        sleep(2);
+
         $this->fetchQR();
 
         \Filament\Notifications\Notification::make()
-            ->title('QR Solicitado')
-            ->body('Si el código anterior no había expirado, verás el mismo código. De lo contrario, se ha actualizado.')
-            ->info()
+            ->title('QR Actualizado')
+            ->body('Si tu código estaba expirado, ahora se ha generado uno nuevo listo para escanear.')
+            ->success()
             ->send();
     }
 

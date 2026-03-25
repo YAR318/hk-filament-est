@@ -225,6 +225,7 @@ class EvolutionService
                 'Content-Type' => 'application/json',
             ])->post("{$this->baseUrl}/instance/create", [
                         'instanceName' => $instanceName,
+                        'token' => $this->apiKey, // FORZAR EL TOKEN PARA QUE V2 LO ACEPTE
                         'integration' => 'WHATSAPP-BAILEYS',
                         'qrcode' => true,
                         'webhook' => [
