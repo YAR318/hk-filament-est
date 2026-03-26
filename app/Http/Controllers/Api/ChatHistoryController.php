@@ -212,7 +212,7 @@ class ChatHistoryController extends Controller
             // No hay operadores disponibles
             $conversation->update([
                 'escalated_at' => now(),
-                'priority' => 'high',
+                'priority' => 'alta',
             ]);
 
             // Guardar mensaje de sistema
@@ -236,7 +236,7 @@ class ChatHistoryController extends Controller
         $conversation->update([
             'is_bot_active' => false,
             'escalated_at' => now(),
-            'priority' => 'high',
+            'priority' => 'alta',
         ]);
 
         // Guardar mensaje de sistema
