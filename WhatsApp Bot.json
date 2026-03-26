@@ -498,7 +498,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v21.0/{{ $vars.META_PHONE_ID }}/messages",
+        "url": "https://graph.facebook.com/v21.0/1014547651731433/messages",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
