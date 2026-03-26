@@ -156,7 +156,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Obtener datos del mensaje (viene de Procesar?)\nconst inputData = $('Procesar?').first().json;\nconst historyArray = inputData.history || [];\n\n// Obtener contexto de la base de conocimiento\nconst kbData = $('Obtener Contexto').first().json;\nconst knowledgeContext = kbData.context || '';\n\n// Usar horario Mexico/Guadalajara (UTC-6)\nconst now = new Date();\nconst mexicoOffset = -6;\nconst mexicoTime = new Date(now.getTime() + (mexicoOffset * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));\nconst dateStr = mexicoTime.toISOString().split('T')[0];\nconst timeStr = mexicoTime.toTimeString().split(' ')[0].substring(0,5);\nconst dayNames = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];\nconst dayName = dayNames[mexicoTime.getDay()];\n\n// Generar mapa explicito de dias de la semana con sus fechas\nlet dayDateMap = '';\nfor (let i = 0; i < 7; i++) {\n    const d = new Date(mexicoTime.getTime() + (i * 24 * 60 * 60 * 1000));\n    const dName = dayNames[d.getDay()];\n    const dDate = d.toISOString().split('T')[0];\n    const label = i === 0 ? '(hoy)' : i === 1 ? '(manana)' : '';\n    dayDateMap += `- ${dName} ${label}: ${dDate}\\n`;\n}\n\nconst systemMessage = {\n    role: 'system',\n    content: `Eres un asistente conversacional de WhatsApp. Eres un asistente profesional, formal y muy educado. SIEMPRE debes tratar al usuario de \"usted\". No uses jerga ni lenguaje coloquial.\n\nINFORMACION DE CONTEXTO (Base de Conocimiento):\n${knowledgeContext}\n\nREGLAS IMPORTANTES DE CONVERSACION:\n- Utiliza un tono profesional, respetuoso y formal en todo momento. Dirigete al usuario de \"usted\".\n- TUS MENSAJES DEBEN SER MUY CORTOS Y CONCISOS. Maximo 2 oraciones por respuesta. Debes sonar como un humano atendiendo por WhatsApp, no como un robot escribiendo ensayos.\n- NUNCA repitas el mismo saludo. Si ya saludaste antes en el historial, NO vuelvas a saludar.\n- Si el usuario pregunta \"que haces\" o \"en que puedes ayudar\", responde de manera breve y profesional: puedes agendar citas y responder preguntas.\n- Lee el historial de la conversacion y responde de forma coherente con lo que ya se dijo.\n- Ve directo al punto. No des explicaciones largas a menos que te lo pidan.\n- Varia tus respuestas, no uses siempre las mismas frases.\n\nCAPACIDADES DE CITAS:\n- Puedes agendar, cancelar y reagendar citas para los clientes\n- El horario de atencion es configurable (por defecto 9:00 a 17:00, lunes a viernes)\n- Solo se permite UNA cita activa por cliente\n- Al agendar, SIEMPRE pide el correo electronico del cliente para enviarle un recordatorio por email\n\nFECHA Y HORA ACTUAL:\n- Fecha: ${dateStr}\n- Hora: ${timeStr}\n- Dia: ${dayName}\n\nCALENDARIO DE ESTA SEMANA (usa estas fechas exactas, NO calcules tu):\n${dayDateMap}\nINSTRUCCIONES PARA CITAS:\nCuando detectes que el cliente quiere agendar, cancelar, reagendar o consultar disponibilidad, responde UNICAMENTE con un JSON en este formato exacto (sin texto adicional, sin markdown, sin backticks):\n\nPara AGENDAR una cita (IMPORTANTE: necesitas nombre, fecha, hora Y email):\n{\"action\":\"appointment_create\",\"date\":\"YYYY-MM-DD\",\"time\":\"HH:MM\",\"name\":\"nombre del cliente\",\"email\":\"correo@ejemplo.com\"}\n\nPara CANCELAR una cita:\n{\"action\":\"appointment_cancel\"}\n\nPara REAGENDAR una cita:\n{\"action\":\"appointment_reschedule\",\"date\":\"YYYY-MM-DD\",\"time\":\"HH:MM\"}\n\nPara CONSULTAR DISPONIBILIDAD de un dia especifico:\n{\"action\":\"appointment_available\",\"date\":\"YYYY-MM-DD\"}\n\nPara VER PROXIMOS HORARIOS DISPONIBLES (cuando no dicen fecha):\n{\"action\":\"appointment_next_available\"}\n\nREGLAS CRITICAS (MUY IMPORTANTE):\n1. SOLO responde con JSON cuando el usuario EXPLICITAMENTE pida una accion de citas\n2. Mensajes como \"hola\", \"puedes ayudarme?\", \"tengo cita?\" son preguntas NORMALES, responde con TEXTO plano\n3. NUNCA asumas ni inventes fechas u horas. Si el usuario pide agendar pero NO especifica el dia o la hora exacta, NO USES EL JSON. Responde con texto plano preguntandole a que hora y que dia le gustaria la cita.\n4. SOLO usa appointment_cancel cuando digan EXPLICITAMENTE: \"cancela mi cita\", \"quiero cancelar\", \"no quiero la cita\"\n5. NUNCA canceles una cita si solo PREGUNTAN sobre su cita\n6. Cuando digan \"manana\", \"el lunes\", USA EL CALENDARIO DE ARRIBA\n7. Si preguntan \"que dias tienes disponibles\", usa appointment_next_available\n8. Para agendar, SIEMPRE pregunta el nombre completo del cliente. NO uses el nombre de contacto de WhatsApp directamente, pregunta: como te llamas? o a nombre de quien sera la cita?\\n9. Para agendar, SIEMPRE pregunta tambien por el correo electronico del cliente. El email es necesario para enviarles un recordatorio por email. Necesitas nombre, fecha, hora Y email antes de generar el JSON de appointment_create.\n\nCONTEXTO ACTUAL:\n- Estas hablando con: ${inputData.user_name} (Tel: ${inputData.phone}).`\n};\n\nlet groqMessages = [systemMessage];\n\nif (Array.isArray(historyArray)) {\n    for (const msg of historyArray) {\n        groqMessages.push({\n            role: msg.role === 'user' ? 'user' : 'assistant',\n            content: msg.content\n        });\n    }\n}\n\nreturn [{ json: { groqMessages, phone: inputData.phone, userName: inputData.user_name, remoteJid: inputData.remote_jid, instanceName: inputData.instance_name || 'HunabkuBot', channel: inputData.channel || 'evolution' } }];"
+        "jsCode": "// Obtener datos del mensaje (viene de Procesar?)\nconst inputData = $('Procesar?').first().json;\nconst historyArray = inputData.history || [];\n\n// Obtener contexto de la base de conocimiento\nconst kbData = $('Obtener Contexto').first().json;\nconst knowledgeContext = kbData.context || '';\n\n// Usar horario Mexico/Guadalajara (UTC-6)\nconst now = new Date();\nconst mexicoOffset = -6;\nconst mexicoTime = new Date(now.getTime() + (mexicoOffset * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));\nconst dateStr = mexicoTime.toISOString().split('T')[0];\nconst timeStr = mexicoTime.toTimeString().split(' ')[0].substring(0,5);\nconst dayNames = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];\nconst dayName = dayNames[mexicoTime.getDay()];\n\n// Generar mapa explicito de dias de la semana con sus fechas\nlet dayDateMap = '';\nfor (let i = 0; i < 7; i++) {\n    const d = new Date(mexicoTime.getTime() + (i * 24 * 60 * 60 * 1000));\n    const dName = dayNames[d.getDay()];\n    const dDate = d.toISOString().split('T')[0];\n    const label = i === 0 ? '(hoy)' : i === 1 ? '(manana)' : '';\n    dayDateMap += `- ${dName} ${label}: ${dDate}\\n`;\n}\n\nconst systemMessage = {\n    role: 'system',\n    content: `Eres un asistente conversacional de WhatsApp. Eres un asistente profesional, formal y muy educado. SIEMPRE debes tratar al usuario de \"usted\". No uses jerga ni lenguaje coloquial.\n\nINFORMACION DE CONTEXTO (Base de Conocimiento):\n${knowledgeContext}\n\nREGLAS IMPORTANTES DE CONVERSACION:\n- Utiliza un tono profesional, respetuoso y formal en todo momento. Dirigete al usuario de \"usted\".\n- TUS MENSAJES DEBEN SER MUY CORTOS Y CONCISOS. Maximo 2 oraciones por respuesta. Debes sonar como un humano atendiendo por WhatsApp, no como un robot escribiendo ensayos.\n- NUNCA repitas el mismo saludo. Si ya saludaste antes en el historial, NO vuelvas a saludar.\n- Si el usuario pregunta \"que haces\" o \"en que puedes ayudar\", responde de manera breve y profesional: puedes agendar citas y responder preguntas.\n- Lee el historial de la conversacion y responde de forma coherente con lo que ya se dijo.\n- Ve directo al punto. No des explicaciones largas a menos que te lo pidan.\n- Varia tus respuestas, no uses siempre las mismas frases.\n\nCAPACIDADES DE CITAS:\n- Puedes agendar, cancelar y reagendar citas para los clientes\n- El horario de atencion es configurable (por defecto 9:00 a 17:00, lunes a viernes)\n- Solo se permite UNA cita activa por cliente\n- Al agendar, SIEMPRE pide el correo electronico del cliente para enviarle un recordatorio por email\n\nFECHA Y HORA ACTUAL:\n- Fecha: ${dateStr}\n- Hora: ${timeStr}\n- Dia: ${dayName}\n\nCALENDARIO DE ESTA SEMANA (usa estas fechas exactas, NO calcules tu):\n${dayDateMap}\nINSTRUCCIONES PARA CITAS:\nCuando detectes que el cliente quiere agendar, cancelar, reagendar o consultar disponibilidad, responde UNICAMENTE con un JSON en este formato exacto (sin texto adicional, sin markdown, sin backticks):\n\nPara AGENDAR una cita (IMPORTANTE: necesitas nombre, fecha, hora Y email):\n{\"action\":\"appointment_create\",\"date\":\"YYYY-MM-DD\",\"time\":\"HH:MM\",\"name\":\"nombre del cliente\",\"email\":\"correo@ejemplo.com\"}\n\nPara CANCELAR una cita:\n{\"action\":\"appointment_cancel\"}\n\nPara REAGENDAR una cita:\n{\"action\":\"appointment_reschedule\",\"date\":\"YYYY-MM-DD\",\"time\":\"HH:MM\"}\n\nPara CONSULTAR DISPONIBILIDAD de un dia especifico:\n{\"action\":\"appointment_available\",\"date\":\"YYYY-MM-DD\"}\n\nPara VER PROXIMOS HORARIOS DISPONIBLES (cuando no dicen fecha):\n{\"action\":\"appointment_next_available\"}\n\nPara ESCALAR A UN HUMANO (cuando no puedas resolver o el cliente lo pida):\n{\"action\":\"escalate_human\",\"reason\":\"motivo breve de la escalacion\"}\n\nCUANDO ESCALAR A UN HUMANO:\n- El cliente dice explicitamente que quiere hablar con una persona\n- No puedes resolver su duda con la informacion disponible\n- El cliente esta frustrado o muestra insatisfaccion\n- El tema es sobre quejas, devoluciones o asuntos sensibles\n- El cliente lleva mas de 3 intentos sin resolver su consulta\n\nREGLAS CRITICAS (MUY IMPORTANTE):\n1. SOLO responde con JSON cuando el usuario EXPLICITAMENTE pida una accion de citas\n2. Mensajes como \"hola\", \"puedes ayudarme?\", \"tengo cita?\" son preguntas NORMALES, responde con TEXTO plano\n3. NUNCA asumas ni inventes fechas u horas. Si el usuario pide agendar pero NO especifica el dia o la hora exacta, NO USES EL JSON. Responde con texto plano preguntandole a que hora y que dia le gustaria la cita.\n4. SOLO usa appointment_cancel cuando digan EXPLICITAMENTE: \"cancela mi cita\", \"quiero cancelar\", \"no quiero la cita\"\n5. NUNCA canceles una cita si solo PREGUNTAN sobre su cita\n6. Cuando digan \"manana\", \"el lunes\", USA EL CALENDARIO DE ARRIBA\n7. Si preguntan \"que dias tienes disponibles\", usa appointment_next_available\n8. Para agendar, SIEMPRE pregunta el nombre completo del cliente. NO uses el nombre de contacto de WhatsApp directamente, pregunta: como te llamas? o a nombre de quien sera la cita?\\n9. Para agendar, SIEMPRE pregunta tambien por el correo electronico del cliente. El email es necesario para enviarles un recordatorio por email. Necesitas nombre, fecha, hora Y email antes de generar el JSON de appointment_create.\n\nCONTEXTO ACTUAL:\n- Estas hablando con: ${inputData.user_name} (Tel: ${inputData.phone}).`\n};\n\nlet groqMessages = [systemMessage];\n\nif (Array.isArray(historyArray)) {\n    for (const msg of historyArray) {\n        groqMessages.push({\n            role: msg.role === 'user' ? 'user' : 'assistant',\n            content: msg.content\n        });\n    }\n}\n\nreturn [{ json: { groqMessages, phone: inputData.phone, userName: inputData.user_name, remoteJid: inputData.remote_jid, instanceName: inputData.instance_name || 'HunabkuBot', channel: inputData.channel || 'evolution' } }];"
       },
       "name": "Formatear para AI",
       "type": "n8n-nodes-base.code",
@@ -204,7 +204,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const groqResponse = $input.first().json;\nconst content = groqResponse.choices?.[0]?.message?.content || '';\n\nlet actionData = null;\ntry {\n    const jsonMatch = content.match(/\\{[\\s\\S]*\"action\"[\\s\\S]*\\}/);\n    if (jsonMatch) {\n        actionData = JSON.parse(jsonMatch[0]);\n    }\n} catch(e) {}\n\nconst phone = $('Formatear para AI').item.json.phone || '';\nconst userName = $('Formatear para AI').item.json.userName || 'Cliente';\nconst remoteJid = $('Formatear para AI').item.json.remoteJid || '';\nconst instanceName = $('Formatear para AI').item.json.instanceName || 'HunabkuBot';\nconst channel = $('Formatear para AI').item.json.channel || 'evolution';\nconst tokensUsed = groqResponse.usage?.total_tokens || 0;\n\nif (actionData && actionData.action) {\n    // Remap appointment_next_available to appointment_available (sin date)\n    let action = actionData.action;\n    if (action === 'appointment_next_available') {\n        action = 'appointment_available';\n    }\n    if (action === 'appointment_create' && (!actionData.date || !actionData.time)) {\n        return [{ json: { isAction: false, text: '¡Claro! Por favor dime qué día y a qué hora te gustaría tu cita.', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n    if (action === 'appointment_create' && !actionData.email) {\n        return [{ json: { isAction: false, text: '¡Casi listo! Solo necesito tu correo electrónico para enviarte un recordatorio de la cita. 📧', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n    if (action === 'appointment_reschedule' && (!actionData.date || !actionData.time)) {\n        return [{ json: { isAction: false, text: '¡Claro! Por favor dime la nueva fecha y hora para reagendar tu cita.', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n\n    return [{\n        json: {\n            isAction: true,\n            action: action,\n            date: actionData.date || null,\n            time: actionData.time || null,\n            name: actionData.name || userName,\n            email: actionData.email || null,\n            phone, userName, remoteJid, instanceName, channel, tokensUsed,\n            originalContent: content\n        }\n    }];\n} else {\n    return [{\n        json: {\n            isAction: false,\n            text: content,\n            phone, userName, remoteJid, instanceName, channel, tokensUsed\n        }\n    }];\n}"
+        "jsCode": "const groqResponse = $input.first().json;\nconst content = groqResponse.choices?.[0]?.message?.content || '';\n\nlet actionData = null;\ntry {\n    const jsonMatch = content.match(/\\{[\\s\\S]*\"action\"[\\s\\S]*\\}/);\n    if (jsonMatch) {\n        actionData = JSON.parse(jsonMatch[0]);\n    }\n} catch(e) {}\n\nconst phone = $('Formatear para AI').item.json.phone || '';\nconst userName = $('Formatear para AI').item.json.userName || 'Cliente';\nconst remoteJid = $('Formatear para AI').item.json.remoteJid || '';\nconst instanceName = $('Formatear para AI').item.json.instanceName || 'HunabkuBot';\nconst channel = $('Formatear para AI').item.json.channel || 'evolution';\nconst tokensUsed = groqResponse.usage?.total_tokens || 0;\n\nif (actionData && actionData.action) {\n    let action = actionData.action;\n\n    // Escalacion a humano\n    if (action === 'escalate_human') {\n        return [{\n            json: {\n                isAction: true,\n                action: 'escalate_human',\n                reason: actionData.reason || 'Solicitud de atencion humana',\n                phone, userName, remoteJid, instanceName, channel, tokensUsed,\n                originalContent: content\n            }\n        }];\n    }\n\n    // Remap appointment_next_available to appointment_available (sin date)\n    if (action === 'appointment_next_available') {\n        action = 'appointment_available';\n    }\n    if (action === 'appointment_create' && (!actionData.date || !actionData.time)) {\n        return [{ json: { isAction: false, text: '¡Claro! Por favor dime qué día y a qué hora te gustaría tu cita.', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n    if (action === 'appointment_create' && !actionData.email) {\n        return [{ json: { isAction: false, text: '¡Casi listo! Solo necesito tu correo electrónico para enviarte un recordatorio de la cita. 📧', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n    if (action === 'appointment_reschedule' && (!actionData.date || !actionData.time)) {\n        return [{ json: { isAction: false, text: '¡Claro! Por favor dime la nueva fecha y hora para reagendar tu cita.', phone, userName, remoteJid, instanceName, channel, tokensUsed, originalContent: content } }];\n    }\n\n    return [{\n        json: {\n            isAction: true,\n            action: action,\n            date: actionData.date || null,\n            time: actionData.time || null,\n            name: actionData.name || userName,\n            email: actionData.email || null,\n            phone, userName, remoteJid, instanceName, channel, tokensUsed,\n            originalContent: content\n        }\n    }];\n} else {\n    return [{\n        json: {\n            isAction: false,\n            text: content,\n            phone, userName, remoteJid, instanceName, channel, tokensUsed\n        }\n    }];\n}"
       },
       "name": "Detectar Accion",
       "type": "n8n-nodes-base.code",
@@ -255,6 +255,10 @@
             {
               "value2": "appointment_available",
               "output": 3
+            },
+            {
+              "value2": "escalate_human",
+              "output": 4
             }
           ]
         }
@@ -736,6 +740,50 @@
         384
       ],
       "id": "40ed748a-ac1b-444f-94ba-c9b3e0366979"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hk-filament/api/chat/escalate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Host",
+              "value": "hk-filament.local.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone_number\": \"{{ $json.phone }}\",\n  \"reason\": {{ JSON.stringify($json.reason) }},\n  \"contact_name\": {{ JSON.stringify($json.userName) }}\n}",
+        "options": {}
+      },
+      "name": "Escalar a Humano",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -96,
+        -96
+      ],
+      "id": "esc01-1234-5678-9abc-def012345678"
+    },
+    {
+      "parameters": {
+        "jsCode": "const escalation = $input.first().json;\nconst detectar = $('Detectar Accion');\nconst phone = detectar.first().json.phone || '';\nconst remoteJid = detectar.first().json.remoteJid || '';\nconst instanceName = detectar.first().json.instanceName || 'HunabkuBot';\nconst channel = detectar.first().json.channel || 'evolution';\nconst tokensUsed = detectar.first().json.tokensUsed || 0;\nconst userName = detectar.first().json.userName || 'Cliente';\n\nlet message = '';\nlet notifyOperator = null;\n\nif (escalation.escalated) {\n    message = `Entendido. Lo conecto con ${escalation.operator.name}, quien le podra ayudar con su consulta. Por favor espere un momento. \\ud83d\\ude4f`;\n    notifyOperator = {\n        phone: escalation.operator.phone_number,\n        name: escalation.operator.name,\n        clientName: userName,\n        clientPhone: phone,\n        reason: escalation.message\n    };\n} else {\n    message = 'En este momento no hay asesores disponibles. Su consulta ha quedado registrada y un asesor le contactara pronto. Disculpe la espera. \\ud83d\\ude4f';\n}\n\nconst result = [{ json: { text: message, phone, remoteJid, instanceName, channel, tokensUsed } }];\n\n// Si hay operador, enviar notificacion (segundo output)\nif (notifyOperator) {\n    result.push({ json: { ...notifyOperator, instanceName, channel } });\n}\n\nreturn result;"
+      },
+      "name": "Preparar Respuesta Escalacion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -96
+      ],
+      "id": "esc02-1234-5678-9abc-def012345678"
     }
   ],
   "pinData": {},
@@ -905,6 +953,35 @@
         [
           {
             "node": "Consultar Disponibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalar a Humano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalar a Humano": {
+      "main": [
+        [
+          {
+            "node": "Preparar Respuesta Escalacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Respuesta Escalacion": {
+      "main": [
+        [
+          {
+            "node": "Canal?",
             "type": "main",
             "index": 0
           }

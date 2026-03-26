@@ -179,4 +179,81 @@ class ChatHistoryController extends Controller
             'history' => $history
         ]);
     }
+
+    /**
+     * Escalar conversación a un operador humano
+     * La IA llama este endpoint cuando detecta que necesita intervención humana
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function escalateToHuman(Request $request)
+    {
+        $phoneNumber = $request->input('phone_number');
+        $reason = $request->input('reason', 'Solicitud de atención humana');
+        $contactName = $request->input('contact_name', 'Cliente');
+
+        if (!$phoneNumber) {
+            return response()->json([
+                'success' => false,
+                'message' => 'phone_number es requerido'
+            ], 400);
+        }
+
+        $phoneClean = preg_replace('/\D/', '', $phoneNumber);
+
+        // Obtener o crear la conversación
+        $conversation = $this->chatHistoryService->getOrCreateConversation($phoneClean, $contactName);
+
+        // Buscar operador disponible con menos carga
+        $operator = \App\Models\Operator::findAvailableOperator();
+
+        if (!$operator) {
+            // No hay operadores disponibles
+            $conversation->update([
+                'escalated_at' => now(),
+                'priority' => 'high',
+            ]);
+
+            // Guardar mensaje de sistema
+            $this->chatHistoryService->addSystemMessage(
+                $phoneClean,
+                "⚠️ Escalación solicitada pero no hay operadores disponibles. Motivo: {$reason}"
+            );
+
+            return response()->json([
+                'success' => true,
+                'escalated' => false,
+                'reason' => 'no_operators_available',
+                'message' => 'No hay operadores disponibles en este momento. Su consulta quedará registrada y un asesor le contactará pronto.'
+            ]);
+        }
+
+        // Asignar conversación al operador
+        $operator->assignConversation($conversation);
+
+        // Desactivar el bot para esta conversación
+        $conversation->update([
+            'is_bot_active' => false,
+            'escalated_at' => now(),
+            'priority' => 'high',
+        ]);
+
+        // Guardar mensaje de sistema
+        $this->chatHistoryService->addSystemMessage(
+            $phoneClean,
+            "🔔 Conversación escalada a {$operator->name}. Motivo: {$reason}"
+        );
+
+        return response()->json([
+            'success' => true,
+            'escalated' => true,
+            'operator' => [
+                'name' => $operator->name,
+                'phone_number' => $operator->phone_number,
+                'email' => $operator->email,
+            ],
+            'message' => "Conversación asignada a {$operator->name}."
+        ]);
+    }
 }

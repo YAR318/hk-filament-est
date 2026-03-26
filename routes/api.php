@@ -41,6 +41,7 @@ Route::middleware(['api.key', 'throttle:60,1'])->group(function () {
     Route::get('/chat-history/{phone}', [ChatHistoryController::class, 'getHistoryByPhone']);
     Route::post('/chat/save-response', [ChatHistoryController::class, 'saveAssistantResponse']);
     Route::post('/chat/process-message', [ChatHistoryController::class, 'processIncomingMessage']);
+    Route::post('/chat/escalate', [ChatHistoryController::class, 'escalateToHuman']);
 
     // ─── Verificaciones (n8n consulta estado) ────────────────────────
     Route::get('/whatsapp/check-block/{phone}', [BlockedPhoneController::class, 'check']);
