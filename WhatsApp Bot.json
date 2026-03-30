@@ -570,13 +570,12 @@
         "start": "={{ $('Detectar Accion').item.json.date + 'T' + $('Detectar Accion').item.json.time + ':00-06:00' }}",
         "end": "={{ new Date(new Date($('Detectar Accion').item.json.date + 'T' + $('Detectar Accion').item.json.time + ':00-06:00').getTime() + 30 * 60000).toISOString() }}",
         "additionalFields": {
-          "attendees": "={{ $('Detectar Accion').item.json.email || '' }}",
           "conferenceDataUi": {
             "conferenceDataValues": {
               "conferenceSolution": "hangoutsMeet"
             }
           },
-          "description": "={{ 'Cita con ' + $('Detectar Accion').item.json.name + ' - Tel: ' + $('Detectar Accion').item.json.phone + ' - Duración: 30 minutos' }}",
+          "description": "={{ 'Cita con ' + $('Detectar Accion').item.json.name + ' - Tel: ' + $('Detectar Accion').item.json.phone + ' - Email: ' + $('Detectar Accion').item.json.email + ' - Duración: 30 minutos' }}",
           "sendUpdates": "all",
           "summary": "={{ 'Cita: ' + $('Detectar Accion').item.json.name }}"
         }
@@ -664,7 +663,11 @@
           "cachedResultName": "yeremigamer555@gmail.com"
         },
         "eventId": "={{ $json.data.google_event_id }}",
-        "updateFields": {}
+        "updateFields": {
+          "start": "={{ $('Detectar Accion').item.json.date + 'T' + $('Detectar Accion').item.json.time + ':00-06:00' }}",
+          "end": "={{ new Date(new Date($('Detectar Accion').item.json.date + 'T' + $('Detectar Accion').item.json.time + ':00-06:00').getTime() + 30 * 60000).toISOString() }}",
+          "summary": "={{ 'Cita: ' + $('Detectar Accion').item.json.name }}"
+        }
       },
       "name": "Google Calendar Update",
       "type": "n8n-nodes-base.googleCalendar",
