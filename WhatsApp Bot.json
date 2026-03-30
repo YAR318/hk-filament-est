@@ -570,6 +570,13 @@
         "start": "={{ $('Detectar Accion').item.json.date + 'T' + $('Detectar Accion').item.json.time + ':00-06:00' }}",
         "end": "={{ new Date(new Date($('Detectar Accion').item.json.date + 'T' + $('Detectar Accion').item.json.time + ':00-06:00').getTime() + 30 * 60000).toISOString() }}",
         "additionalFields": {
+          "attendeesUi": {
+            "attendeeValues": [
+              {
+                "email": "={{ $('Detectar Accion').item.json.email }}"
+              }
+            ]
+          },
           "conferenceDataUi": {
             "conferenceDataValues": {
               "conferenceSolution": "hangoutsMeet"
