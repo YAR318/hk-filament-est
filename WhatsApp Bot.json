@@ -576,7 +576,7 @@
               "conferenceSolution": "hangoutsMeet"
             }
           },
-          "description": "={{ 'Cita con ' + $('Detectar Accion').item.json.name + '\nTel: ' + $('Detectar Accion').item.json.phone + '\nDuración: 30 minutos' }}",
+          "description": "={{ 'Cita con ' + $('Detectar Accion').item.json.name + ' - Tel: ' + $('Detectar Accion').item.json.phone + ' - Duración: 30 minutos' }}",
           "sendUpdates": "all",
           "summary": "={{ 'Cita: ' + $('Detectar Accion').item.json.name }}"
         }
