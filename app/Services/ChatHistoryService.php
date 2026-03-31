@@ -73,16 +73,25 @@ class ChatHistoryService
     /**
      * Obtener o crear conversación por número telefónico
      */
-    public function getOrCreateConversation(string $phoneNumber, ?string $contactName = null): ChatConversation
+    public function getOrCreateConversation(string $phoneNumber, ?string $contactName = null, ?string $channel = null, ?string $instanceName = null): ChatConversation
     {
-        return ChatConversation::firstOrCreate(
+        $conversation = ChatConversation::firstOrCreate(
             ['phone_number' => $phoneNumber],
             [
                 'contact_name' => $contactName,
+                'channel' => $channel ?? 'evolution',
+                'instance_name' => $instanceName,
                 'status' => 'active',
                 'last_message_at' => now(),
             ]
         );
+
+        // Actualizar channel si la conversación ya existía pero no tenía channel
+        if ($channel && $conversation->channel === 'evolution' && $channel !== 'evolution') {
+            $conversation->update(['channel' => $channel, 'instance_name' => $instanceName]);
+        }
+
+        return $conversation;
     }
 
     /**

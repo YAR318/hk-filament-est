@@ -158,6 +158,9 @@ class ChatHistoryController extends Controller
             ]);
         }
 
+        // Asegurar que la conversación tenga el canal correcto
+        $this->chatHistoryService->getOrCreateConversation($phoneClean, $userName, $channel, $instanceName);
+
         // Guardar mensaje del usuario
         $this->chatHistoryService->addUserMessage(
             $phoneClean,

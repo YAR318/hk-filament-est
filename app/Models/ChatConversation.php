@@ -11,6 +11,8 @@ class ChatConversation extends Model
     protected $fillable = [
         'phone_number',
         'contact_name',
+        'channel',
+        'instance_name',
         'status',
         'last_message_at',
         'metadata',

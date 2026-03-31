@@ -223,9 +223,9 @@ class ViewConversationHistory extends Page
     }
 
     /**
-     * Send a message via WhatsApp
+     * Send a message via WhatsApp (routes by channel: evolution or meta)
      */
-    public function sendMessage(\App\Services\EvolutionService $whatsappService): void
+    public function sendMessage(): void
     {
         if (!$this->canSendMessages()) {
             \Filament\Notifications\Notification::make()
@@ -253,37 +253,70 @@ class ViewConversationHistory extends Page
         }
 
         try {
-            $result = $whatsappService->sendMessage($this->record->phone_number, $this->newMessage);
+            $success = false;
 
-            if ($result) {
-                ChatMessage::create([
-                    'conversation_id' => $this->record->id,
-                    'role' => 'assistant',
-                    'content' => $this->newMessage,
-                    'sent_at' => now(),
-                ]);
+            // Enrutar por canal
+            if ($this->record->channel === 'meta') {
+                // Enviar por Meta API
+                $metaProvider = new \App\Services\WhatsApp\MetaWhatsAppProvider();
 
-                $this->record->update([
-                    'last_message_at' => now(),
-                    'last_human_response_at' => now(),
-                ]);
+                if (!$metaProvider->isConfigured()) {
+                    \Filament\Notifications\Notification::make()
+                        ->title('Meta API no configurada')
+                        ->body('Configura el Token de Meta y Phone ID en Ajustes de la App.')
+                        ->danger()
+                        ->send();
+                    return;
+                }
 
-                $this->newMessage = '';
+                $result = $metaProvider->sendMessage($this->record->phone_number, $this->newMessage);
+                $success = $result['success'] ?? false;
 
-                \Filament\Notifications\Notification::make()
-                    ->title('Mensaje enviado')
-                    ->success()
-                    ->send();
+                if (!$success) {
+                    \Filament\Notifications\Notification::make()
+                        ->title('Error al enviar por Meta')
+                        ->body($result['error'] ?? 'Error desconocido')
+                        ->danger()
+                        ->send();
+                    return;
+                }
+            } else {
+                // Enviar por Evolution API
+                $whatsappService = app(\App\Services\EvolutionService::class);
+                $result = $whatsappService->sendMessage($this->record->phone_number, $this->newMessage);
+                $success = !empty($result);
+
+                if (!$success) {
+                    \Filament\Notifications\Notification::make()
+                        ->title('Error al enviar mensaje')
+                        ->body('No se pudo conectar con la API de WhatsApp.')
+                        ->danger()
+                        ->send();
+                    return;
+                }
             }
-            else {
-                \Filament\Notifications\Notification::make()
-                    ->title('Error al enviar mensaje')
-                    ->body('No se pudo conectar con la API de WhatsApp.')
-                    ->danger()
-                    ->send();
-            }
-        }
-        catch (\Exception $e) {
+
+            // Guardar mensaje en historial
+            ChatMessage::create([
+                'conversation_id' => $this->record->id,
+                'role' => 'assistant',
+                'content' => $this->newMessage,
+                'sent_at' => now(),
+            ]);
+
+            $this->record->update([
+                'last_message_at' => now(),
+                'last_human_response_at' => now(),
+            ]);
+
+            $this->newMessage = '';
+
+            \Filament\Notifications\Notification::make()
+                ->title('Mensaje enviado')
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
             \Filament\Notifications\Notification::make()
                 ->title('Error inesperado')
                 ->body($e->getMessage())
