@@ -259,7 +259,7 @@
             },
             {
               "value2": "escalate_human",
-              "output": 4
+              "output": 3
             }
           ]
         }
@@ -796,6 +796,26 @@
         -96
       ],
       "id": "esc02-1234-5678-9abc-def012345678"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "escalate_human"
+            }
+          ]
+        }
+      },
+      "name": "Es Escalar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -150,
+        192
+      ],
+      "id": "new-if-escapar-humano-2026"
     }
   ],
   "pinData": {},
@@ -964,14 +984,7 @@
         ],
         [
           {
-            "node": "Consultar Disponibilidad",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Escalar a Humano",
+            "node": "Es Escalar?",
             "type": "main",
             "index": 0
           }
@@ -1209,6 +1222,24 @@
         [
           {
             "node": "Formatear Respuesta Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Es Escalar?": {
+      "main": [
+        [
+          {
+            "node": "Escalar a Humano",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Disponibilidad",
             "type": "main",
             "index": 0
           }
