@@ -248,6 +248,15 @@ class ChatHistoryController extends Controller
             "🔔 Conversación escalada a {$operator->name}. Motivo: {$reason}"
         );
 
+        // Enviar notificación al panel de Filament del operador
+        if ($operator->user) {
+            \Filament\Notifications\Notification::make()
+                ->title('Nueva Conversación Asignada')
+                ->body("Cliente: {$contactName}\nMotivo: {$reason}")
+                ->success()
+                ->sendToDatabase($operator->user);
+        }
+
         return response()->json([
             'success' => true,
             'escalated' => true,
