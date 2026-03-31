@@ -242,7 +242,8 @@
         "rules": {
           "rules": [
             {
-              "value2": "appointment_create"
+              "value2": "appointment_create",
+              "output": 0
             },
             {
               "value2": "appointment_cancel",
