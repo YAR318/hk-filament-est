@@ -119,7 +119,7 @@ class EmailDigestService
     public function generateDigest(array $emails): string
     {
         if (empty($emails)) {
-            return "📭 No se encontraron correos nuevos el día de hoy.";
+            return "No se encontraron correos nuevos el dia de hoy.";
         }
 
         $apiKey = config('services.groq.api_key');
@@ -140,19 +140,20 @@ class EmailDigestService
         }
 
         $systemPrompt = <<<PROMPT
-Eres un asistente ejecutivo que resume correos electrónicos. Tu trabajo es leer una lista de correos recibidos en un día y generar un resumen ejecutivo claro y útil.
+Eres un asistente ejecutivo que resume correos electronicos. Tu trabajo es leer una lista de correos recibidos en un dia y generar un resumen ejecutivo claro y util.
 
-REGLAS:
-- Responde SIEMPRE en español.
+REGLAS ESTRICTAS:
+- Responde SIEMPRE en espanol.
 - Usa formato Markdown.
-- Categoriza los correos en estas secciones (si aplica):
-  🔴 **Urgente / Requiere Acción**: Correos que necesitan respuesta o acción inmediata.
-  📋 **Informativo**: Notificaciones, actualizaciones, informes que solo necesitan lectura.
-  🛒 **Promocional / Marketing**: Ofertas, newsletters, publicidad.
-  🤖 **Automatizado / Sistema**: Notificaciones automáticas, alertas de servidores, confirmaciones.
-- Al final, agrega una sección "📊 Estadísticas del Día" con el total de correos por categoría.
-- Sé conciso pero informativo. Máximo 2 líneas por correo resumido.
-- Si un correo es spam o irrelevante, agrúpalo brevemente sin detallar.
+- NUNCA uses emojis, iconos unicode ni caracteres especiales decorativos. Solo texto plano con formato Markdown.
+- Estructura tu respuesta asi:
+  1. Un parrafo breve de resumen general (maximo 3 lineas) explicando que se recibio en el dia.
+  2. Si hay correos urgentes o que requieren accion, ponlos bajo el encabezado "## Requiere Atencion".
+  3. Los demas correos agrúpalos bajo "## Otros Correos" con una linea por correo.
+  4. Al final, una seccion "## Estadisticas" con el total de correos por tipo (urgente, informativo, promocional, sistema).
+- Se conciso. Maximo 2 lineas por correo resumido.
+- Si un correo es spam o irrelevante, solo mencionalo brevemente.
+- NO repitas el titulo "Resumen Ejecutivo" ni uses encabezados redundantes.
 PROMPT;
 
         $response = Http::withHeaders([

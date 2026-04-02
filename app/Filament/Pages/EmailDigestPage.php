@@ -21,10 +21,10 @@ class EmailDigestPage extends Page
     public ?array $emailsList = null;
     public bool $isLoading = false;
     public ?string $lastGenerated = null;
+    public ?string $viewingDate = null;
 
     public function mount(): void
     {
-        // Cargar el último resumen del día si existe
         $todayDigest = EmailDigest::where('user_id', auth()->id())
             ->where('digest_date', now()->toDateString())
             ->first();
@@ -34,6 +34,7 @@ class EmailDigestPage extends Page
             $this->emailsCount = $todayDigest->emails_count;
             $this->emailsList = $todayDigest->emails_data;
             $this->lastGenerated = $todayDigest->updated_at->format('h:i A');
+            $this->viewingDate = $todayDigest->digest_date->format('d/m/Y');
         }
     }
 
@@ -44,7 +45,6 @@ class EmailDigestPage extends Page
         try {
             $service = new EmailDigestService();
 
-            // Paso 1: Leer correos
             Notification::make()
                 ->title('Conectando a Gmail...')
                 ->info()
@@ -53,9 +53,10 @@ class EmailDigestPage extends Page
             $emails = $service->fetchTodaysEmails();
 
             if (empty($emails)) {
-                $this->summary = "📭 No se encontraron correos nuevos el día de hoy.";
+                $this->summary = "No se encontraron correos nuevos el dia de hoy.";
                 $this->emailsCount = 0;
                 $this->emailsList = [];
+                $this->viewingDate = now()->format('d/m/Y');
                 $this->isLoading = false;
 
                 Notification::make()
@@ -65,10 +66,8 @@ class EmailDigestPage extends Page
                 return;
             }
 
-            // Paso 2: Generar resumen con IA
             $summary = $service->generateDigest($emails);
 
-            // Paso 3: Guardar en BD
             $digest = EmailDigest::updateOrCreate(
                 [
                     'user_id' => auth()->id(),
@@ -85,6 +84,7 @@ class EmailDigestPage extends Page
             $this->emailsCount = count($emails);
             $this->emailsList = $emails;
             $this->lastGenerated = now()->format('h:i A');
+            $this->viewingDate = now()->format('d/m/Y');
 
             Notification::make()
                 ->title('Resumen generado exitosamente')
@@ -121,7 +121,8 @@ class EmailDigestPage extends Page
             $this->summary = $digest->summary;
             $this->emailsCount = $digest->emails_count;
             $this->emailsList = $digest->emails_data;
-            $this->lastGenerated = $digest->updated_at->format('h:i A') . ' (' . $digest->digest_date->format('d/m/Y') . ')';
+            $this->lastGenerated = $digest->updated_at->format('h:i A');
+            $this->viewingDate = $digest->digest_date->format('d/m/Y');
         }
     }
 }
