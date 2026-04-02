@@ -33,26 +33,66 @@ class EmailDigestService
             foreach ($messages as $message) {
                 if ($count >= 50) break; // Limitar a 50 correos
 
-                $body = $message->getTextBody() ?? $message->getHTMLBody() ?? '';
-                // Limpiar HTML si es necesario
+                // getTextBody/getHTMLBody pueden ser Attribute, convertir a string
+                $body = '';
+                try {
+                    $textBody = $message->getTextBody();
+                    $htmlBody = $message->getHTMLBody();
+                    $body = is_object($textBody) ? (string) $textBody : ($textBody ?? '');
+                    if (empty($body)) {
+                        $body = is_object($htmlBody) ? (string) $htmlBody : ($htmlBody ?? '');
+                    }
+                } catch (\Exception $e) {
+                    $body = '';
+                }
                 $body = strip_tags($body);
-                // Limitar el body a 500 caracteres por correo
                 $snippet = mb_substr(trim($body), 0, 500);
 
-                $from = $message->getFrom();
+                // getFrom() retorna Attribute, no array
                 $fromEmail = '';
                 $fromName = '';
-                if ($from && count($from) > 0) {
-                    $firstFrom = $from[0];
-                    $fromEmail = $firstFrom->mail ?? '';
-                    $fromName = $firstFrom->personal ?? $fromEmail;
+                try {
+                    $from = $message->getFrom();
+                    if ($from) {
+                        // Attribute tiene ->first() o se puede iterar
+                        $firstFrom = is_object($from) ? $from->first() : ($from[0] ?? null);
+                        if ($firstFrom) {
+                            $fromEmail = $firstFrom->mail ?? '';
+                            $fromName = $firstFrom->personal ?? $fromEmail;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $fromEmail = 'desconocido';
+                    $fromName = 'Desconocido';
+                }
+
+                // getSubject() y getDate() también retornan Attribute
+                $subject = '';
+                try {
+                    $subj = $message->getSubject();
+                    $subject = is_object($subj) ? (string) $subj : ($subj ?? '(Sin asunto)');
+                } catch (\Exception $e) {
+                    $subject = '(Sin asunto)';
+                }
+
+                $dateStr = '';
+                try {
+                    $date = $message->getDate();
+                    if ($date) {
+                        $dateObj = is_object($date) ? $date->first() : $date;
+                        $dateStr = ($dateObj instanceof \Carbon\Carbon || $dateObj instanceof \DateTime)
+                            ? $dateObj->format('H:i')
+                            : (string) $date;
+                    }
+                } catch (\Exception $e) {
+                    $dateStr = '';
                 }
 
                 $emails[] = [
-                    'subject' => $message->getSubject() ?? '(Sin asunto)',
-                    'from_name' => $fromName,
+                    'subject' => $subject ?: '(Sin asunto)',
+                    'from_name' => $fromName ?: 'Desconocido',
                     'from_email' => $fromEmail,
-                    'date' => $message->getDate()?->format('H:i') ?? '',
+                    'date' => $dateStr,
                     'snippet' => $snippet,
                 ];
 

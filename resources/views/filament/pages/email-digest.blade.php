@@ -6,8 +6,7 @@
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-gray-950 dark:text-white flex items-center gap-2">
-                        <x-heroicon-o-sparkles class="w-6 h-6 text-yellow-500" />
-                        Resumen Inteligente de Correos
+                        ✨ Resumen Inteligente de Correos
                     </h2>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Conecta tu bandeja de entrada de Gmail y obtén un resumen ejecutivo generado por IA.
@@ -59,7 +58,7 @@
                         <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 p-4">
                             <div class="flex items-center gap-3">
                                 <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3">
-                                    <x-heroicon-o-envelope class="w-6 h-6 text-blue-500" />
+                                    <span class="text-2xl">📧</span>
                                 </div>
                                 <div>
                                     <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $emailsCount }}</p>
@@ -70,7 +69,7 @@
                         <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 p-4">
                             <div class="flex items-center gap-3">
                                 <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-3">
-                                    <x-heroicon-o-cpu-chip class="w-6 h-6 text-green-500" />
+                                    <span class="text-2xl">🤖</span>
                                 </div>
                                 <div>
                                     <p class="text-2xl font-bold text-gray-900 dark:text-white">Groq AI</p>
@@ -81,7 +80,7 @@
                         <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 p-4">
                             <div class="flex items-center gap-3">
                                 <div class="rounded-lg bg-purple-50 dark:bg-purple-900/20 p-3">
-                                    <x-heroicon-o-clock class="w-6 h-6 text-purple-500" />
+                                    <span class="text-2xl">🕐</span>
                                 </div>
                                 <div>
                                     <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $lastGenerated }}</p>
@@ -95,8 +94,7 @@
                 {{-- AI Summary --}}
                 <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <x-heroicon-o-document-text class="w-5 h-5 text-primary-500" />
-                        Resumen del Día
+                        📝 Resumen del Día
                     </h3>
                     <div class="prose dark:prose-invert max-w-none">
                         {!! \Illuminate\Support\Str::markdown($summary) !!}
@@ -107,14 +105,13 @@
                 @if($emailsList && count($emailsList) > 0)
                     <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <x-heroicon-o-inbox class="w-5 h-5 text-primary-500" />
-                            Correos Procesados ({{ count($emailsList) }})
+                            📥 Correos Procesados ({{ count($emailsList) }})
                         </h3>
                         <div class="divide-y divide-gray-200 dark:divide-gray-700">
                             @foreach($emailsList as $email)
                                 <div class="py-3 flex items-start gap-3">
                                     <div class="rounded-full bg-gray-100 dark:bg-gray-800 p-2 mt-0.5">
-                                        <x-heroicon-o-envelope class="w-4 h-4 text-gray-400" />
+                                        <span class="text-sm">✉️</span>
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="font-medium text-gray-900 dark:text-white text-sm truncate">
@@ -136,8 +133,7 @@
         @if(count($this->history) > 0)
             <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <x-heroicon-o-clock class="w-5 h-5 text-primary-500" />
-                    Historial de Resúmenes
+                    📅 Historial de Resúmenes
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     @foreach($this->history as $digest)
