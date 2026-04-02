@@ -40,6 +40,8 @@ Panel de administracion construido con **Laravel 12 + Filament v4**, que integra
 
 ## Instalacion rapida
 
+Este proyecto se entrega **completamente dockerizado**. Solo necesitas Docker instalado.
+
 ```bash
 # 1. Clonar el repositorio
 git clone https://github.com/YAR318/hk-filament-est.git
@@ -49,21 +51,24 @@ cd hk-filament-est
 cp .env.example .env
 # (Editar .env con las credenciales - ver seccion siguiente)
 
-# 3. Instalar dependencias PHP
-composer install
-
-# 4. Generar clave de aplicacion
-php artisan key:generate
-
-# 5. Compilar assets frontend
-npm install && npm run build
-
-# 6. Ejecutar migraciones
-php artisan migrate --seed
-
-# 7. Levantar con Docker (si aplica)
+# 3. Levantar todos los contenedores
 docker compose up -d
+
+# 4. Instalar dependencias dentro del contenedor
+docker exec hk-filament composer install
+
+# 5. Generar clave de aplicacion
+docker exec hk-filament php artisan key:generate
+
+# 6. Compilar assets frontend
+docker exec hk-filament npm install && docker exec hk-filament npm run build
+
+# 7. Ejecutar migraciones
+docker exec hk-filament php artisan migrate --seed
 ```
+
+> **NOTA:** Todos los comandos `php artisan` deben ejecutarse dentro del contenedor `hk-filament`.
+> Puedes entrar al contenedor con: `docker exec -it hk-filament bash`
 
 ---
 
@@ -191,9 +196,9 @@ GOOGLE_REDIRECT_URI=https://tu-dominio.com/auth/google/callback
 
 ---
 
-### 7. Evolution API (WhatsApp Bot)
+### 7. Evolution API (WhatsApp Bot - canal Evolution)
 
-Evolution API gestiona la conexion con WhatsApp.
+Evolution API gestiona la conexion con WhatsApp via QR (no oficial).
 
 ```env
 EVOLUTION_BASE_URL=http://evolution_api:8080     # URL del contenedor Evolution
@@ -207,7 +212,45 @@ EVOLUTION_API_KEY=tu_api_key_de_evolution        # API Key configurada en Evolut
 
 ---
 
-### 8. Google Calendar (Agendamiento de citas via bot)
+### 8. Meta WhatsApp Cloud API (WhatsApp Bot - canal oficial)
+
+El sistema soporta **dos canales de WhatsApp**: Evolution API (punto 7) y la **API oficial de Meta**.
+Las credenciales de Meta **NO van en el `.env`**, sino que se configuran desde el panel de Filament.
+
+#### Paso 1: Configurar en Meta for Developers
+
+1. Ve a [Meta for Developers](https://developers.facebook.com/).
+2. Crea una App de tipo **"Negocio"** (o usa una existente).
+3. En el dashboard de tu App, agrega el producto **"WhatsApp"**.
+4. En WhatsApp > Configuracion de la API, encontraras:
+   - **Phone Number ID**: El ID numerico del telefono de prueba o produccion (ej: `123456789012345`).
+   - **Access Token**: Token permanente de acceso. Para obtener uno permanente:
+     1. Ve a Configuracion de la App > Basica y copia el **App Secret**.
+     2. Ve a tu **System User** en Business Settings > System Users.
+     3. Genera un token permanente con permisos `whatsapp_business_messaging` y `whatsapp_business_management`.
+5. En WhatsApp > Configuracion > Webhook:
+   - **URL de callback**: `https://tu-dominio.com/api/meta/webhook`
+   - **Verify Token**: Una cadena secreta que tu elijas (ej: `mi_token_secreto_123`).
+   - Suscribete a los eventos: `messages`.
+
+#### Paso 2: Configurar en el panel de Filament
+
+1. Inicia sesion en el panel de administracion.
+2. Ve a **Configuracion** en el menu lateral (pagina de AppSettings).
+3. En la seccion **"Meta WhatsApp"**, llena los campos:
+   - **Phone Number ID**: El ID que copiaste de Meta (ej: `123456789012345`).
+   - **Access Token (permanente)**: El token que empieza con `EAAG...`.
+   - **Verify Token**: La misma cadena que pusiste en el webhook de Meta.
+4. Guarda la configuracion.
+
+> **IMPORTANTE:**
+> - Estas credenciales se guardan en la base de datos (tabla `app_settings`), no en archivos.
+> - El webhook de Meta es: `https://tu-dominio.com/api/meta/webhook` (debe ser HTTPS en produccion).
+> - Meta requiere que tu servidor sea accesible publicamente con HTTPS para verificar el webhook.
+
+---
+
+### 9. Google Calendar (Agendamiento de citas via bot)
 
 El bot puede agendar citas en Google Calendar.
 
@@ -225,7 +268,7 @@ Ademas, necesitas un archivo de credenciales de servicio:
 
 ---
 
-### 9. IMAP Gmail (Resumen Inteligente de Correos con IA)
+### 10. IMAP Gmail (Resumen Inteligente de Correos con IA)
 
 Esta funcion lee los correos del dia via IMAP y genera un resumen con IA.
 
@@ -251,7 +294,7 @@ IMAP_PASSWORD=xxxx xxxx xxxx xxxx          # Misma contrasena de aplicacion del 
 
 ---
 
-### 10. Groq API (Motor de IA)
+### 11. Groq API (Motor de IA)
 
 Groq se usa como motor de inteligencia artificial para:
 - Resumenes de correos (Email Digest)
@@ -272,7 +315,7 @@ GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
-### 11. Servidor de Autenticacion SSO (opcional)
+### 12. Servidor de Autenticacion SSO (opcional)
 
 Si usas el sistema de autenticacion centralizado:
 
@@ -284,7 +327,7 @@ AUTH_SERVER_URL=http://hk-autenticacion:8001   # URL del servidor SSO
 
 ---
 
-### 12. n8n (Automatizacion / Cerebro del Bot)
+### 13. n8n (Automatizacion / Cerebro del Bot)
 
 n8n no se configura desde el `.env` de Laravel, sino desde su propio panel:
 
@@ -310,6 +353,7 @@ n8n no se configura desde el `.env` de Laravel, sino desde su propio panel:
 | `IMAP_USERNAME` / `IMAP_PASSWORD` | Lector de correos | Gmail + Contrasena de app |
 | `GROQ_API_KEY` | Motor de IA | console.groq.com |
 | `SESSION_DOMAIN` | Dominio de cookies | Tu dominio con punto inicial |
+| **Meta WhatsApp** | **Se configura desde el panel** | **Meta for Developers + Filament > Configuracion** |
 
 ---
 
@@ -322,7 +366,8 @@ n8n no se configura desde el `.env` de Laravel, sino desde su propio panel:
 | **Google OAuth** | Login con cuenta de Google | [Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2) |
 | **Google Calendar** | Agendar citas via bot | [Google Calendar API](https://developers.google.com/calendar) |
 | **Groq** | Inteligencia artificial (LLM) | [Groq Console](https://console.groq.com) |
-| **Evolution API** | Conexion con WhatsApp | [Evolution API Docs](https://doc.evolution-api.com) |
+| **Evolution API** | WhatsApp via QR (no oficial) | [Evolution API Docs](https://doc.evolution-api.com) |
+| **Meta Cloud API** | WhatsApp oficial (API de Meta) | [Meta WhatsApp Docs](https://developers.facebook.com/docs/whatsapp/cloud-api) |
 | **n8n** | Automatizacion de workflows | [n8n Docs](https://docs.n8n.io) |
 
 ---
