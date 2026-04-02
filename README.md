@@ -217,23 +217,62 @@ EVOLUTION_API_KEY=tu_api_key_de_evolution        # API Key configurada en Evolut
 El sistema soporta **dos canales de WhatsApp**: Evolution API (punto 7) y la **API oficial de Meta**.
 Las credenciales de Meta **NO van en el `.env`**, sino que se configuran desde el panel de Filament.
 
-#### Paso 1: Configurar en Meta for Developers
+#### Paso 1: Crear la App en Meta
 
-1. Ve a [Meta for Developers](https://developers.facebook.com/).
-2. Crea una App de tipo **"Negocio"** (o usa una existente).
-3. En el dashboard de tu App, agrega el producto **"WhatsApp"**.
-4. En WhatsApp > Configuracion de la API, encontraras:
-   - **Phone Number ID**: El ID numerico del telefono de prueba o produccion (ej: `123456789012345`).
-   - **Access Token**: Token permanente de acceso. Para obtener uno permanente:
-     1. Ve a Configuracion de la App > Basica y copia el **App Secret**.
-     2. Ve a tu **System User** en Business Settings > System Users.
-     3. Genera un token permanente con permisos `whatsapp_business_messaging` y `whatsapp_business_management`.
-5. En WhatsApp > Configuracion > Webhook:
+1. Ve a [Meta for Developers](https://developers.facebook.com/) e inicia sesion con tu cuenta de Facebook.
+2. Click en **"Mis Apps"** (esquina superior derecha) > **"Crear app"**.
+3. Selecciona tipo de app: **"Negocio"** (o "Otro" si no aparece Negocio).
+4. Llena el nombre de la App (ej: "HK WhatsApp Bot") y selecciona tu Business Portfolio. Click **"Crear app"**.
+5. En el dashboard de tu App, busca el producto **"WhatsApp"** y click en **"Configurar"**.
+
+#### Paso 2: Obtener el Phone Number ID
+
+1. En el menu lateral izquierdo, ve a **WhatsApp > Configuracion de la API** (o "API Setup").
+2. Veras una seccion **"From"** con un numero de telefono de prueba que Meta te asigna automaticamente.
+3. Debajo del numero veras el **Phone Number ID** (un numero largo, ej: `123456789012345`). **Copia este ID**, lo necesitaras despues.
+
+> **NOTA:** Este es un numero de prueba. Para produccion, necesitas registrar tu propio numero de telefono en la seccion WhatsApp > Numeros de telefono.
+
+#### Paso 3: Obtener el Access Token permanente
+
+Meta te da un token **temporal** que expira en 24 horas. Para obtener uno **permanente**, sigue estos pasos:
+
+1. Ve a [Meta Business Suite](https://business.facebook.com/) > **Configuracion del negocio** (Business Settings).
+2. En el menu lateral izquierdo, navega a **Usuarios > Usuarios del sistema** (System Users).
+3. Click en **"Agregar"** para crear un nuevo System User:
+   - **Nombre:** `hk-whatsapp-bot` (o el nombre que quieras).
+   - **Rol:** Selecciona **"Admin"**.
+   - Click en **"Crear usuario del sistema"**.
+4. Ahora necesitas **asignar recursos** al System User:
+   - Click en el System User que acabas de crear.
+   - Click en **"Asignar activos"** (Add Assets).
+   - Selecciona la pestana **"Apps"**.
+   - Busca tu App (la que creaste en el Paso 1) y seleccionala.
+   - Activa el permiso **"Control total"** (Full Control).
+   - Click en **"Guardar cambios"**.
+5. Ahora genera el **token permanente**:
+   - En la misma pagina del System User, click en **"Generar token"** (Generate Token).
+   - Selecciona la App que creaste.
+   - En la lista de permisos, marca estos dos:
+     - `whatsapp_business_messaging`
+     - `whatsapp_business_management`
+   - Click en **"Generar token"**.
+   - **COPIA EL TOKEN INMEDIATAMENTE** (empieza con `EAAG...`). Meta solo te lo muestra una vez.
+
+> **IMPORTANTE:** Si pierdes el token, tendras que generar uno nuevo repitiendo el paso 5.
+
+#### Paso 4: Configurar el Webhook
+
+1. En [Meta for Developers](https://developers.facebook.com/), ve a tu App > Menu lateral > **WhatsApp > Configuracion** (o "Configuration").
+2. En la seccion **"Webhook"**, click en **"Editar"**:
    - **URL de callback**: `https://tu-dominio.com/api/meta/webhook`
-   - **Verify Token**: Una cadena secreta que tu elijas (ej: `mi_token_secreto_123`).
-   - Suscribete a los eventos: `messages`.
+   - **Verify Token**: Inventa una cadena secreta (ej: `mi_token_secreto_123`). **Anota esta cadena**, la necesitaras en el panel de Filament.
+3. Click en **"Verificar y guardar"**. Meta enviara una peticion GET a tu servidor para verificar el webhook.
+4. Despues de verificar, en la seccion **"Campos de webhook"**, busca **"messages"** y click en **"Suscribirse"**.
 
-#### Paso 2: Configurar en el panel de Filament
+> **NOTA:** Tu servidor debe ser accesible publicamente con HTTPS para que Meta pueda verificar el webhook. Si estas en desarrollo local, puedes usar [ngrok](https://ngrok.com/) para exponer tu servidor temporalmente.
+
+#### Paso 5: Configurar en el panel de Filament
 
 1. Inicia sesion en el panel de administracion.
 2. Ve a **Configuracion** en el menu lateral (pagina de AppSettings).
