@@ -74,4 +74,8 @@ return [
      */
     'api_key' => env('API_INTERNAL_KEY', ''),
 
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+    ],
+
 ];
