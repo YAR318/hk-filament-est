@@ -83,7 +83,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://hk-filament/api/chat/process-message",
+        "url": "https://webhook.yeremi.work/api/chat/process-message",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -93,7 +93,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -133,13 +133,13 @@
     },
     {
       "parameters": {
-        "url": "http://hk-filament/api/knowledge-base",
+        "url": "https://webhook.yeremi.work/api/knowledge-base",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -276,7 +276,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://hk-filament/api/appointments/create",
+        "url": "https://webhook.yeremi.work/api/appointments/create",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -286,7 +286,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -308,7 +308,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://hk-filament/api/appointments/cancel",
+        "url": "https://webhook.yeremi.work/api/appointments/cancel",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -318,7 +318,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -340,7 +340,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://hk-filament/api/appointments/reschedule",
+        "url": "https://webhook.yeremi.work/api/appointments/reschedule",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -350,7 +350,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -371,7 +371,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.date ? 'http://hk-filament/api/appointments/available/' + $json.date : 'http://hk-filament/api/appointments/next-slots' }}",
+        "url": "={{ $json.date ? 'https://webhook.yeremi.work/api/appointments/available/' + $json.date : 'https://webhook.yeremi.work/api/appointments/next-slots' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -381,7 +381,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -398,7 +398,7 @@
     },
     {
       "parameters": {
-        "url": "http://hk-filament/api/appointments/next-available",
+        "url": "https://webhook.yeremi.work/api/appointments/next-available",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -408,7 +408,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -532,7 +532,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://hk-filament/api/chat/save-response",
+        "url": "https://webhook.yeremi.work/api/chat/save-response",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -542,7 +542,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -606,7 +606,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://hk-filament/api/appointments/sync-calendar",
+        "url": "https://webhook.yeremi.work/api/appointments/sync-calendar",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -616,7 +616,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
@@ -755,7 +755,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://hk-filament/api/chat/escalate",
+        "url": "https://webhook.yeremi.work/api/chat/escalate",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -765,7 +765,7 @@
             },
             {
               "name": "Host",
-              "value": "hk-filament.local.com"
+              "value": "webhook.yeremi.work"
             }
           ]
         },
