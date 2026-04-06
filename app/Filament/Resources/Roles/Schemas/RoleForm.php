@@ -12,6 +12,8 @@ use Filament\Forms\Components\Hidden;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Models\Permission;
 
+use Filament\Forms\Components\Select;
+
 class RoleForm
 {
     public static function configure(Schema $schema): Schema
@@ -26,6 +28,20 @@ class RoleForm
                             ->unique(ignoreRecord: true)
                             ->maxLength(255)
                             ->placeholder('Ej: admin, supervisor'),
+
+                        Select::make('color')
+                            ->label('Color del Rol')
+                            ->options([
+                                'danger'  => 'Rojo',
+                                'warning' => 'Amarillo',
+                                'success' => 'Verde',
+                                'info'    => 'Azul',
+                                'primary' => 'Morado',
+                                'gray'    => 'Gris',
+                            ])
+                            ->default('gray')
+                            ->required()
+                            ->native(false),
                     ]),
 
                 Section::make('Permisos de Acceso')

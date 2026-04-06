@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Confiar en proxies (Cloudflare Tunnel)
+        $middleware->trustProxies(at: '*');
+
         // Excluir rutas API del CSRF para permitir requests desde n8n
         $middleware->validateCsrfTokens(except: [
             'api/*',

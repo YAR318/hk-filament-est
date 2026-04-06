@@ -3,12 +3,11 @@
 namespace App\Filament\Responses;
 
 use Filament\Auth\Http\Responses\Contracts\LoginResponse as LoginResponseContract;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 
 class LoginResponse implements LoginResponseContract
 {
-    public function toResponse($request): RedirectResponse
+    public function toResponse($request)
     {
         $user = Auth::user();
 
