@@ -88,7 +88,8 @@ class MetaWebhookController
 
         // Reenviar el payload completo a n8n para procesamiento
         try {
-            $n8nResponse = Http::timeout(10)->post('http://n8n:5678/webhook/whatsapp-meta', [
+            // URL del n8n: usar la instancia deployada (cambiar a 'http://n8n:5678' cuando todo esté en el mismo servidor)
+            $n8nResponse = Http::timeout(10)->post('https://shopify-api.hunabku.mx/webhook/whatsapp-meta', [
                 'phone_number' => $phoneNumber,
                 'message_body' => $messageText,
                 'message_id' => $messageId,
