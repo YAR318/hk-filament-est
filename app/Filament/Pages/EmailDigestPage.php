@@ -12,7 +12,12 @@ class EmailDigestPage extends Page
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-envelope';
     protected static ?string $navigationLabel = 'Resumen de Correos';
     protected static ?string $title = 'Resumen de Correos con IA';
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 42;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Herramientas IA';
+    }
 
     protected string $view = 'filament.pages.email-digest';
 
