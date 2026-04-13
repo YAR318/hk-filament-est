@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Models\EmailDigest;
-use App\Services\EmailDigestService;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
 
@@ -48,16 +47,26 @@ class EmailDigestPage extends Page
         $this->isLoading = true;
 
         try {
-            $service = new EmailDigestService();
-
             Notification::make()
-                ->title('Conectando a Gmail...')
+                ->title('Llamando a n8n...')
                 ->info()
                 ->send();
 
-            $emails = $service->fetchTodaysEmails();
+            // Llamada al webhook local de n8n
+            $n8nUrl = env('N8N_WEBHOOK_URL', 'http://n8n:5678') . '/webhook/email-digest';
+            $response = \Illuminate\Support\Facades\Http::timeout(60)->post($n8nUrl);
 
-            if (empty($emails)) {
+            if (!$response->successful()) {
+                throw new \Exception('Error al contactar n8n: ' . $response->status());
+            }
+
+            $data = $response->json();
+
+            if (!isset($data['success']) || !$data['success']) {
+                throw new \Exception('n8n no devolvió un formato correcto.');
+            }
+
+            if ($data['email_count'] == 0) {
                 $this->summary = "No se encontraron correos nuevos el dia de hoy.";
                 $this->emailsCount = 0;
                 $this->emailsList = [];
@@ -71,7 +80,8 @@ class EmailDigestPage extends Page
                 return;
             }
 
-            $summary = $service->generateDigest($emails);
+            $summary = $data['summary'];
+            $emailsCount = $data['email_count'];
 
             $digest = EmailDigest::updateOrCreate(
                 [
@@ -79,21 +89,21 @@ class EmailDigestPage extends Page
                     'digest_date' => now()->toDateString(),
                 ],
                 [
-                    'emails_count' => count($emails),
+                    'emails_count' => $emailsCount,
                     'summary' => $summary,
-                    'emails_data' => $emails,
+                    'emails_data' => [], // n8n no devuelve la lista completa para no saturar, podemos dejarlo vacio o ajustarlo después.
                 ]
             );
 
             $this->summary = $summary;
-            $this->emailsCount = count($emails);
-            $this->emailsList = $emails;
+            $this->emailsCount = $emailsCount;
+            $this->emailsList = [];
             $this->lastGenerated = now()->format('h:i A');
             $this->viewingDate = now()->format('d/m/Y');
 
             Notification::make()
                 ->title('Resumen generado exitosamente')
-                ->body("Se analizaron " . count($emails) . " correos.")
+                ->body("Se analizaron {$emailsCount} correos.")
                 ->success()
                 ->send();
 

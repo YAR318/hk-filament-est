@@ -59,4 +59,7 @@ Route::middleware(['api.key', 'throttle:60,1'])->group(function () {
     // ─── Base de conocimiento (contexto para el bot) ────────────────
     Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index']);
 
+    // ─── Actualizaciones asíncronas de n8n ──────────────────────────
+    Route::post('/video-analysis/update', [\App\Http\Controllers\Api\VideoAnalysisController::class, 'updateFromN8n']);
+
 });

@@ -393,7 +393,7 @@
                                placeholder="Escribe tu pregunta sobre el documento..."
                                autocomplete="off"
                                @disabled($isChatting)>
-                        <button type="submit" class="da-chat-send" @disabled($isChatting || empty($chatQuestion))>
+                        <button type="submit" class="da-chat-send" @disabled($isChatting)>
                             <span wire:loading.remove wire:target="sendChatMessage">Enviar</span>
                             <span wire:loading wire:target="sendChatMessage">...</span>
                         </button>

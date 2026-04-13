@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Models\DocumentAnalysis;
-use App\Services\DocumentAnalysisService;
 use App\Services\DocumentParserService;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
@@ -85,9 +84,31 @@ class DocumentAnalyzerPage extends Page
                 throw new \RuntimeException('No se pudo extraer texto del documento. El archivo podría estar vacío o ser una imagen escaneada.');
             }
 
-            // Generar resumen con IA
-            $analysisService = new DocumentAnalysisService();
-            $result = $analysisService->generateSummary($extractedText);
+            Notification::make()
+                ->title('Procesando con n8n...')
+                ->info()
+                ->send();
+
+            // Llamada al webhook de n8n para resumir
+            $n8nUrl = env('N8N_WEBHOOK_URL', 'http://n8n:5678') . '/webhook/document-ai';
+            $response = \Illuminate\Support\Facades\Http::timeout(60)->post($n8nUrl, [
+                'action' => 'summarize',
+                'text' => mb_substr($extractedText, 0, 12000)
+            ]);
+
+            if (!$response->successful()) {
+                throw new \Exception('Error al contactar n8n: ' . $response->status());
+            }
+
+            $data = $response->json();
+            if (!isset($data['success']) || !$data['success']) {
+                throw new \Exception('n8n devolvió un error JSON');
+            }
+
+            $result = [
+                'summary' => $data['summary'] ?? 'Sin resumen',
+                'key_points' => $data['key_points'] ?? []
+            ];
 
             // Guardar en BD
             $analysis = DocumentAnalysis::create([
@@ -145,13 +166,21 @@ class DocumentAnalyzerPage extends Page
                 'content' => $question,
             ];
 
-            // Enviar a la IA
-            $service = new DocumentAnalysisService();
-            $response = $service->chatWithDocument(
-                $analysis->extracted_text,
-                $question,
-                $this->chatMessages
-            );
+            // Enviar a la IA (n8n)
+            $n8nUrl = env('N8N_WEBHOOK_URL', 'http://n8n:5678') . '/webhook/document-ai';
+            $res = \Illuminate\Support\Facades\Http::timeout(60)->post($n8nUrl, [
+                'action' => 'chat',
+                'text' => mb_substr($analysis->extracted_text, 0, 10000),
+                'question' => $question,
+                'history' => $this->chatMessages
+            ]);
+
+            if (!$res->successful()) {
+                throw new \Exception('Error al contactar n8n: ' . $res->status());
+            }
+
+            $data = $res->json();
+            $response = $data['reply'] ?? 'Sin respuesta de n8n';
 
             // Agregar respuesta
             $this->chatMessages[] = [

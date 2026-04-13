@@ -54,33 +54,40 @@ class ProcessVideoAnalysis implements ShouldQueue
                 $analysis->update(['audio_path' => ltrim($relativePath, '/')]);
             }
 
-            // Paso 2: Transcribir
-            $analysis->update(['status' => 'transcribing']);
-            $transcription = $service->transcribeAudio($audioPath);
-
-            if (empty(trim($transcription))) {
-                throw new \RuntimeException('No se pudo transcribir el audio. El archivo podría no contener voz.');
+            // Paso 2: Transcribir el audio usando Groq (vía llamada nativa)
+            $apiKey = env('GROQ_API_KEY');
+            if (!$apiKey) { throw new \RuntimeException('No existe GROQ_API_KEY en el .env'); }
+            
+            $transcriptionResponse = \Illuminate\Support\Facades\Http::timeout(300)
+                ->withToken($apiKey)
+                ->attach('file', file_get_contents(Storage::disk('public')->path($analysis->audio_path)), 'audio.mp3')
+                ->post('https://api.groq.com/openai/v1/audio/transcriptions', [
+                    'model' => 'whisper-large-v3',
+                    'response_format' => 'json',
+                    'language' => 'es',
+                ]);
+                
+            if (!$transcriptionResponse->successful()) {
+                throw new \RuntimeException('Error en Groq API: ' . $transcriptionResponse->body());
             }
+            $transcriptionText = $transcriptionResponse->json('text', '');
 
-            $analysis->update(['transcription' => $transcription]);
+            // Paso 3: Notificar a n8n para que genere resumen y tareas
+            $n8nUrl = env('N8N_WEBHOOK_URL', 'http://n8n:5678') . '/webhook/video-analyzer';
 
-            // Paso 3: Generar minutas con IA
-            $analysis->update(['status' => 'analyzing']);
-            $minutes = $service->generateMinutes($transcription);
-
-            // Paso 4: Guardar resultados
-            $analysis->update([
-                'summary' => $minutes['summary'],
-                'key_decisions' => $minutes['key_decisions'],
-                'tasks' => $minutes['tasks'],
-                'status' => 'completed',
+            $response = \Illuminate\Support\Facades\Http::timeout(30)->post($n8nUrl, [
+                'analysis_id' => $analysis->id,
+                'transcription' => $transcriptionText,
             ]);
 
-            Log::info('ProcessVideoAnalysis: Completado', [
+            if (!$response->successful()) {
+                throw new \RuntimeException('No se pudo contactar al webhook de n8n.');
+            }
+
+            // El Job de Laravel termina aquí. n8n actualizará el estado más tarde.
+            Log::info('ProcessVideoAnalysis: Audio enviado a n8n', [
                 'id' => $analysis->id,
                 'duration' => $duration,
-                'transcription_length' => mb_strlen($transcription),
-                'tasks_count' => count($minutes['tasks']),
             ]);
 
         } catch (\Exception $e) {
