@@ -114,7 +114,7 @@
                     </svg>
                     Acceso Administrativo
                 </a>
-                <a href="{{ env('AUTH_SERVER_URL', 'http://localhost:8001') }}/login"
+                <a href="{{ route('login.email') }}"
                     class="flex items-center px-4 py-3 bg-[#0f172a]/50 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white rounded-xl transition-colors">
                     <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -126,7 +126,7 @@
 
             <!-- Link registro -->
             <div class="flex items-center justify-center pt-4 border-t border-gray-700">
-                <a href="{{ env('AUTH_SERVER_URL', 'http://localhost:8001') }}/register"
+                <a href="{{ route('auth.redirect', 'google') }}"
                     class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

@@ -16,7 +16,7 @@ class LoginResponse implements LoginResponseContract
             return redirect()->intended('/admin');
         }
 
-        // Usuarios comunes van a su perfil
-        return redirect('/profile');
+        // Usuarios comunes van a la pantalla de bienvenida
+        return redirect('/');
     }
 }

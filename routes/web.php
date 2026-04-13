@@ -25,7 +25,7 @@ Route::get('/', function () {
 // Perfil para usuarios comunes (Redirección externa)
 Route::middleware('auth')->group(function () {
     Route::get('/profile', function () {
-            return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
+            return view('profile', ['user' => Auth::user()]);
         }
         )->name('profile');
         Route::post('/profile/logout', [ProfileController::class , 'logout'])->name('profile.logout');

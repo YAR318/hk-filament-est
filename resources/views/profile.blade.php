@@ -187,15 +187,15 @@
         </div>
 
         <div class="info-section" style="margin-top: -16px; margin-bottom: 24px; padding: 16px;">
-            <a href="{{ env('AUTH_SERVER_URL', 'http://localhost:8001') }}/profile"
-                style="display: flex; align-items: center; justify-content: center; gap: 10px; color: #fff; text-decoration: none; font-size: 14px; font-weight: 500;">
+            <p style="display: flex; align-items: center; justify-content: center; gap: 10px; color: rgba(255,255,255,0.5); font-size: 14px;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
                 </svg>
-                Editar Perfil y Contraseña
-            </a>
+                Contacta al administrador para cambios en tu cuenta
+            </p>
         </div>
 
         <form action="{{ route('profile.logout') }}" method="POST">

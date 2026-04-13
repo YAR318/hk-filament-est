@@ -63,7 +63,7 @@ class SocialAuthController extends Controller
             return redirect('/admin');
         }
 
-        // Usuarios comunes van a su perfil en el otro sistema
-        return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
+        // Usuarios comunes van a la pantalla de bienvenida
+        return redirect('/');
     }
 }
