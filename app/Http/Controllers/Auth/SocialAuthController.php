@@ -31,13 +31,25 @@ class SocialAuthController extends Controller
             $user = User::where('email', $socialUser->getEmail())->first();
 
             if (!$user) {
+                // Correos que automáticamente obtienen rol admin
+                $adminEmails = [
+                    'agenteia.hunabku@gmail.com',
+                ];
+
+                $isAdmin = in_array($socialUser->getEmail(), $adminEmails);
+
                 $user = User::create([
                     'name' => $socialUser->getName(),
                     'email' => $socialUser->getEmail(),
                     'password' => Hash::make(Str::random(24)),
                     'email_verified_at' => now(),
-                    'role' => 'user', // Asignar rol por defecto
+                    'role' => $isAdmin ? 'admin' : 'user',
                 ]);
+
+                // Asignar rol Spatie automáticamente
+                if ($isAdmin) {
+                    $user->assignRole('admin');
+                }
             }
 
             // Login user
@@ -49,7 +61,12 @@ class SocialAuthController extends Controller
 
         }
         catch (\Exception $e) {
-            return redirect('/')->with('error', 'Error al autenticar con ' . ucfirst($provider));
+            \Illuminate\Support\Facades\Log::error('SocialAuth Error: ' . $e->getMessage(), [
+                'provider' => $provider,
+                'exception' => get_class($e),
+            ]);
+            return redirect('/')
+                ->with('error', 'Error al autenticar con ' . ucfirst($provider));
         }
     }
 
