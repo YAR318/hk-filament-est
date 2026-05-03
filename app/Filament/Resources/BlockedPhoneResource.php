@@ -23,6 +23,8 @@ class BlockedPhoneResource extends Resource
 {
     protected static ?string $model = BlockedPhone::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $recordTitleAttribute = 'phone_number';
 
     protected static ?string $navigationLabel = 'Números Bloqueados';

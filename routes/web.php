@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\OtpController;
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\ProfileController;
 
 // Login principal estilo Canva
@@ -36,6 +37,17 @@ Route::get('/login/email', function () {
     return view('auth.email-login');
 })->name('login.email');
 
+// Login manual (modal)
+Route::post('/login/manual', [\App\Http\Controllers\Auth\LoginController::class, 'login'])->name('login.manual');
+
+// Global Logout
+Route::post('/logout', function (\Illuminate\Http\Request $request) {
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return redirect('/');
+})->name('logout');
+
 // OAuth Routes
 Route::get('/auth/{provider}', [SocialAuthController::class , 'redirectToProvider'])
     ->name('auth.redirect');
@@ -47,5 +59,16 @@ Route::get('/auth/{provider}/callback', [SocialAuthController::class , 'handlePr
 Route::post('/otp/send', [OtpController::class , 'sendOtp'])->name('otp.send');
 Route::get('/otp/verify', [OtpController::class , 'showVerifyForm'])->name('otp.verify.form');
 Route::post('/otp/verify', [OtpController::class , 'verifyOtp'])->name('otp.verify');
-Route::get('/otp/password', [OtpController::class , 'showPasswordForm'])->name('otp.password.form');
-Route::post('/otp/password', [OtpController::class , 'updatePassword'])->name('otp.password.update');
+
+// Password Reset Routes
+Route::get('/forgot-password', [OtpController::class, 'showForgotForm'])->name('password.forgot');
+Route::post('/forgot-password', [OtpController::class, 'sendPasswordReset'])->name('password.send-reset');
+Route::get('/reset-password', [OtpController::class, 'showResetForm'])->name('password.reset.form');
+Route::post('/reset-password', [OtpController::class, 'resetPassword'])->name('password.reset');
+
+// Registration Routes
+Route::get('/register', [RegisterController::class, 'showForm'])->name('register');
+Route::post('/register', [RegisterController::class, 'register'])->name('register.submit');
+Route::get('/verify-email', [RegisterController::class, 'showVerifyForm'])->name('verify.email.form');
+Route::post('/verify-email', [RegisterController::class, 'verify'])->name('verify.email');
+Route::post('/verify-email/resend', [RegisterController::class, 'resend'])->name('verify.email.resend');

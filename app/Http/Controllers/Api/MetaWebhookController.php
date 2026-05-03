@@ -89,7 +89,7 @@ class MetaWebhookController
         // Reenviar el payload completo a n8n para procesamiento
         try {
             // URL del n8n configurable via .env, por defecto apunta a la red interna de docker local
-            $n8nWebhookUrl = env('N8N_WEBHOOK_URL', 'http://n8n:5678/webhook/whatsapp-meta');
+            $n8nWebhookUrl = env('N8N_WEBHOOK_URL', 'http://n8n:5678') . '/webhook/whatsapp-meta';
 
             $n8nResponse = Http::timeout(10)->post($n8nWebhookUrl, [
                 'phone_number' => $phoneNumber,

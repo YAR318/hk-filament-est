@@ -18,27 +18,28 @@ class OtpController extends Controller
     public function sendOtp(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email'
-        ], [
-            'email.exists' => 'No encontramos una cuenta con este correo.'
+            'email' => 'required|email'
         ]);
 
         $email = $request->email;
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            // Si no existe, simulamos éxito para no revelar si la cuenta existe o no
+            return redirect()->route('otp.verify.form', ['email' => $email])
+                ->with('success', 'Si hay una cuenta asociada a este correo, te hemos enviado un código.');
+        }
+
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         // Guardar OTP en cache por 10 minutos
         Cache::put("otp_{$email}", $otp, now()->addMinutes(10));
 
-        // Enviar correo con OTP (usará log driver en desarrollo)
+        // Enviar correo con OTP (se envía vía Resend)
         Mail::raw("Tu código de verificación es: {$otp}\n\nEste código expira en 10 minutos.", function ($message) use ($email) {
             $message->to($email)
                 ->subject('Código de Verificación - Hunabku');
         });
-
-        // En entorno local, guardar OTP en flash para mostrarlo en pantalla
-        if (app()->environment('local')) {
-            session()->flash('dev_otp', $otp);
-        }
 
         return redirect()->route('otp.verify.form', ['email' => $email])
             ->with('success', 'Código enviado a tu correo.');
@@ -84,50 +85,100 @@ class OtpController extends Controller
             return redirect('/admin');
         }
 
-        // Redirigir perfil al otro sistema
-        return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
+        // Usuarios comunes van a la pantalla de bienvenida o dashboard
+        return redirect('/');
     }
 
     /**
-     * Mostrar formulario para cambiar contraseña
+     * Mostrar formulario para recuperar contraseña
      */
-    public function showPasswordForm(Request $request)
+    public function showForgotForm()
     {
-        $email = $request->email;
-        $token = base64_decode($request->token);
-        $cachedToken = Cache::get("password_reset_{$email}");
+        return view('auth.forgot-password');
+    }
 
-        if (!$cachedToken || $cachedToken !== $token) {
-            return redirect()->route('login')->withErrors(['error' => 'Enlace inválido o expirado.']);
+    /**
+     * Enviar token de recuperación de contraseña
+     */
+    public function sendPasswordReset(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $email = $request->email;
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            // No revelar si existe o no
+            return redirect()->route('password.reset.form', ['email' => $email])
+                ->with('success', 'Si hay una cuenta asociada a este correo, te enviamos un código de recuperación.');
         }
 
-        return view('auth.reset-password-otp', [
-            'email' => $email,
-            'token' => $request->token
+        // Bloquear recuperación para usuarios con acceso al panel
+        if ($user->can('acceder_panel')) {
+            return back()->withErrors([
+                'email' => 'Las cuentas con acceso administrativo no pueden cambiar su contraseña por este medio. Contacta a un administrador.'
+            ])->withInput();
+        }
+
+        // Generar token de 6 dígitos
+        $token = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        Cache::put("password_reset_{$email}", $token, now()->addMinutes(30));
+
+        // Enviar correo con token (vía Resend)
+        Mail::send('emails.password-reset-token', ['token' => $token, 'name' => $user->name], function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Recuperar Contraseña - Hunabku');
+        });
+
+        return redirect()->route('password.reset.form', ['email' => $email])
+            ->with('success', 'Te hemos enviado un código de recuperación a tu correo.');
+    }
+
+    /**
+     * Mostrar formulario para ingresar token y nueva contraseña
+     */
+    public function showResetForm(Request $request)
+    {
+        return view('auth.reset-password', [
+            'email' => $request->email,
         ]);
     }
 
     /**
-     * Actualizar contraseña
+     * Verificar token y actualizar contraseña
      */
-    public function updatePassword(Request $request)
+    public function resetPassword(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
-            'token' => 'required|string',
+            'token' => 'required|string|size:6',
             'password' => 'required|min:8|confirmed'
+        ], [
+            'token.size' => 'El código debe ser de 6 dígitos.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
         ]);
 
         $email = $request->email;
-        $token = base64_decode($request->token);
+        $inputToken = $request->token;
         $cachedToken = Cache::get("password_reset_{$email}");
 
-        if (!$cachedToken || $cachedToken !== $token) {
-            return redirect()->route('login')->withErrors(['error' => 'Enlace inválido o expirado.']);
+        if (!$cachedToken || $cachedToken !== $inputToken) {
+            return back()->withErrors(['token' => 'Código inválido o expirado.'])->withInput();
+        }
+
+        $user = User::where('email', $email)->first();
+
+        // Doble verificación: bloquear usuarios con acceso al panel
+        if ($user->can('acceder_panel')) {
+            return back()->withErrors([
+                'token' => 'Las cuentas con acceso administrativo no pueden cambiar su contraseña por este medio.'
+            ]);
         }
 
         // Actualizar contraseña
-        $user = User::where('email', $email)->first();
         $user->password = Hash::make($request->password);
         $user->save();
 
@@ -136,13 +187,8 @@ class OtpController extends Controller
 
         // Loguear al usuario
         Auth::login($user);
-        session()->regenerate(); // Invalida sesiones anteriores
+        session()->regenerate();
 
-        // Redirigir según rol
-        if ($user->can('acceder_panel')) {
-            return redirect('/admin');
-        }
-
-        return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
+        return redirect('/');
     }
 }

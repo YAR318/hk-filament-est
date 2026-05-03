@@ -77,7 +77,7 @@ class AppointmentController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 409);
+            ], 200);
         } catch (\Exception $e) {
             Log::error('Error creando cita', ['error' => $e->getMessage()]);
             return response()->json([
@@ -138,7 +138,7 @@ class AppointmentController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 409);
+            ], 200);
         } catch (\Exception $e) {
             Log::error('Error cancelando cita', ['error' => $e->getMessage()]);
             return response()->json([
@@ -204,7 +204,7 @@ class AppointmentController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 409);
+            ], 200);
         } catch (\Exception $e) {
             Log::error('Error reagendando cita', ['error' => $e->getMessage()]);
             return response()->json([

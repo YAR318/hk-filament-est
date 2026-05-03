@@ -43,8 +43,8 @@ class AppointmentService
 
         // Verificar que no haya conflicto con otra cita
         $conflict = Appointment::where('status', Appointment::STATUS_SCHEDULED)
-            ->where('scheduled_at', '>=', $dateTime->copy()->subMinutes(29))
-            ->where('scheduled_at', '<=', $dateTime->copy()->addMinutes(29))
+            ->where('scheduled_at', '>=', $dateTime->copy()->subMinutes(59))
+            ->where('scheduled_at', '<=', $dateTime->copy()->addMinutes(59))
             ->exists();
 
         return !$conflict;

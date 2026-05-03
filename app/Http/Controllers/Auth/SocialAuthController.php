@@ -50,6 +50,10 @@ class SocialAuthController extends Controller
                 if ($isAdmin) {
                     $user->assignRole('admin');
                 }
+            } elseif (!$user->email_verified_at) {
+                // Si el usuario existe pero no ha verificado su correo, lo verificamos ahora ya que entró con Google
+                $user->email_verified_at = now();
+                $user->save();
             }
 
             // Login user
