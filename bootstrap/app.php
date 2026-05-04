@@ -12,9 +12,22 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Confiar en proxies (Cloudflare Tunnel)
+        $middleware->trustProxies(at: '*');
+
         // Excluir rutas API del CSRF para permitir requests desde n8n
         $middleware->validateCsrfTokens(except: [
             'api/*',
+        ]);
+
+        // Sesión única: invalidar sesiones anteriores al iniciar sesión nueva
+        $middleware->web(append: [
+            \Illuminate\Session\Middleware\AuthenticateSession::class,
+        ]);
+
+        // Registrar alias para middleware de API Key
+        $middleware->alias([
+            'api.key' => \App\Http\Middleware\ApiKeyMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

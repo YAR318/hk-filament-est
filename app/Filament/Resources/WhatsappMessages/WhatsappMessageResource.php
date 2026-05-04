@@ -18,6 +18,8 @@ class WhatsappMessageResource extends Resource
 {
     protected static ?string $model = WhatsappMessage::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $recordTitleAttribute = 'message_body';
 
     public static function getNavigationIcon(): string|BackedEnum|null

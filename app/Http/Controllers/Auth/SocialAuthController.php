@@ -31,24 +31,46 @@ class SocialAuthController extends Controller
             $user = User::where('email', $socialUser->getEmail())->first();
 
             if (!$user) {
+                // Correos que automáticamente obtienen rol admin
+                $adminEmails = [
+                    'agenteia.hunabku@gmail.com',
+                ];
+
+                $isAdmin = in_array($socialUser->getEmail(), $adminEmails);
+
                 $user = User::create([
                     'name' => $socialUser->getName(),
                     'email' => $socialUser->getEmail(),
                     'password' => Hash::make(Str::random(24)),
                     'email_verified_at' => now(),
-                    'role' => 'user', // Asignar rol por defecto
+                    'role' => $isAdmin ? 'admin' : 'user',
                 ]);
+
+                // Asignar rol Spatie automáticamente
+                if ($isAdmin) {
+                    $user->assignRole('admin');
+                }
+            } elseif (!$user->email_verified_at) {
+                // Si el usuario existe pero no ha verificado su correo, lo verificamos ahora ya que entró con Google
+                $user->email_verified_at = now();
+                $user->save();
             }
 
             // Login user
             Auth::login($user, true);
+            session()->regenerate(); // Invalida sesiones anteriores
 
             // Redirigir según el rol del usuario
             return $this->redirectByRole($user);
 
         }
         catch (\Exception $e) {
-            return redirect('/')->with('error', 'Error al autenticar con ' . ucfirst($provider));
+            \Illuminate\Support\Facades\Log::error('SocialAuth Error: ' . $e->getMessage(), [
+                'provider' => $provider,
+                'exception' => get_class($e),
+            ]);
+            return redirect('/')
+                ->with('error', 'Error al autenticar con ' . ucfirst($provider));
         }
     }
 
@@ -62,7 +84,7 @@ class SocialAuthController extends Controller
             return redirect('/admin');
         }
 
-        // Usuarios comunes van a su perfil en el otro sistema
-        return redirect()->away(env('AUTH_SERVER_URL', 'http://localhost:8001') . '/profile');
+        // Usuarios comunes van a la pantalla de bienvenida
+        return redirect('/');
     }
 }

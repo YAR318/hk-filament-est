@@ -38,7 +38,7 @@
 
         <div class="space-y-4">
             <!-- Botón Ir a Perfil -->
-            <a href="{{ env('AUTH_SERVER_URL', 'http://localhost:8001') }}/profile"
+            <a href="/profile"
                 class="block w-full py-3.5 bg-[#ff5a5f] hover:bg-[#e04e53] text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">

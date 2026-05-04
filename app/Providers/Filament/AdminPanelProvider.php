@@ -71,9 +71,15 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('10s')
             ->renderHook(
                 'panels::auth.login.form.after',
                 fn() => view('components.back-to-main-login')
+            )
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::BODY_END,
+                fn() => \Illuminate\Support\Facades\Blade::render('@livewire(\'audio-notifier\')')
             );
     }
 }

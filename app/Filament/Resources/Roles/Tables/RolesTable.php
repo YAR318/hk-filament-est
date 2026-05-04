@@ -20,12 +20,7 @@ class RolesTable
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'admin' => 'danger',
-                        'supervisor' => 'warning',
-                        'operador' => 'success',
-                        default => 'gray',
-                    }),
+                    ->color(fn ($record): string => $record->color ?? 'gray'),
                 
                 TextColumn::make('permissions_count')
                     ->label('Permisos')

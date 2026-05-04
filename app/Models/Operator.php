@@ -11,7 +11,7 @@ class Operator extends Model
     use HasFactory;
     protected $fillable = [
         'name',
-        'email', 
+        'email',
         'phone_number',
         'role',
         'is_active',
@@ -26,12 +26,17 @@ class Operator extends Model
         'last_activity_at' => 'datetime',
     ];
 
+    public function user(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(User::class , 'email', 'email');
+    }
+
     /**
      * Relación con conversaciones asignadas
      */
     public function assignedConversations(): HasMany
     {
-        return $this->hasMany(ChatConversation::class, 'assigned_to');
+        return $this->hasMany(ChatConversation::class , 'assigned_to');
     }
 
     /**
@@ -39,7 +44,7 @@ class Operator extends Model
      */
     public function operatorMessages(): HasMany
     {
-        return $this->hasMany(ChatMessage::class, 'operator_id');
+        return $this->hasMany(ChatMessage::class , 'operator_id');
     }
 
     /**
@@ -47,7 +52,7 @@ class Operator extends Model
      */
     public function messages(): HasMany
     {
-        return $this->hasMany(WhatsappMessage::class, 'from_number', 'phone_number');
+        return $this->hasMany(WhatsappMessage::class , 'from_number', 'phone_number');
     }
 
     /**
@@ -63,9 +68,9 @@ class Operator extends Model
      */
     public function canTakeMoreChats(): bool
     {
-        return $this->is_active && 
-               $this->status === 'available' && 
-               $this->current_chats_count < $this->max_concurrent_chats;
+        return $this->is_active &&
+            $this->status === 'available' &&
+            $this->current_chats_count < $this->max_concurrent_chats;
     }
 
     /**
@@ -109,13 +114,13 @@ class Operator extends Model
     public function scopeAvailable($query)
     {
         return $query->where('is_active', true)
-                    ->where('status', 'available');
+            ->where('status', 'available');
     }
 
     public function scopeCanTakeChats($query)
     {
         return $query->available()
-                    ->whereRaw('current_chats_count < max_concurrent_chats');
+            ->whereRaw('current_chats_count < max_concurrent_chats');
     }
 
     /**
@@ -124,7 +129,43 @@ class Operator extends Model
     public static function findAvailableOperator(): ?self
     {
         return self::canTakeChats()
-                   ->orderBy('current_chats_count', 'asc')
-                   ->first();
+            ->orderBy('current_chats_count', 'asc')
+            ->first();
+    }
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::created(function (Operator $operator) {
+            $operator->syncUser();
+        });
+
+        static::updated(function (Operator $operator) {
+            $operator->syncUser();
+        });
+    }
+
+    public function syncUser(): void
+    {
+        $user = User::where('email', $this->email)->first();
+
+        if (!$user) {
+            // Crear usuario si no existe
+            $user = new User();
+            $user->email = $this->email;
+            $user->password = bcrypt('password'); // Contraseña por defecto
+            $user->is_syncing_from_operator = true; // Evitar bucle infinito
+        }
+        else {
+            $user->is_syncing_from_operator = true;
+        }
+
+        $user->name = $this->name;
+        $user->role = $this->role; // 'admin', 'supervisor', 'operador'
+        $user->save();
+
+        // Asignar rol de Spatie
+        $user->syncRoles($this->role);
     }
 }

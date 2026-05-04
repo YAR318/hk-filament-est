@@ -10,12 +10,6 @@ use App\Models\BlockedPhone;
 class ChatHistoryService
 {
     /**
-     * Número del dueño para evitar auto-respuesta (anti-bucle)
-     * TODO: Mover a configuración o base de datos
-     */
-    private const OWNER_JID_FRAGMENT = '7531672288';
-
-    /**
      * Validar si un mensaje debe ser procesado por el bot
      * 
      * @param string $phoneNumber Número de teléfono normalizado
@@ -28,6 +22,7 @@ class ChatHistoryService
         $fromMe = $messageData['fromMe'] ?? false;
 
         // 1. Verificar si es mensaje propio (anti-bucle)
+        // Nota: n8n ya filtra fromMe:true antes de llegar aquí, esto es respaldo
         if ($fromMe === true) {
             return ['process' => false, 'reason' => 'Mensaje propio ignorado'];
         }
@@ -42,20 +37,35 @@ class ChatHistoryService
             return ['process' => false, 'reason' => 'LID no resuelto'];
         }
 
-        // 4. Verificar si contiene el número del dueño (anti-bucle)
-        if (str_contains($phoneNumber, self::OWNER_JID_FRAGMENT) || str_contains($remoteJid, self::OWNER_JID_FRAGMENT)) {
-            return ['process' => false, 'reason' => 'Bucle de dueño detectado'];
-        }
-
-        // 5. Verificar si está bloqueado en la base de datos
+        // 4. Verificar si está bloqueado en la base de datos
         if (BlockedPhone::isBlocked($phoneNumber)) {
             return ['process' => false, 'reason' => 'Número bloqueado'];
         }
 
-        // 6. Verificar si la conversación está bloqueada
+        // 6. Verificar estado de la conversación y configuración del bot
         $conversation = ChatConversation::where('phone_number', $phoneNumber)->first();
-        if ($conversation && $conversation->status === 'blocked') {
-            return ['process' => false, 'reason' => 'Conversación bloqueada'];
+
+        if ($conversation) {
+            // Si la conversación fue resuelta y llega un nuevo mensaje, reabrir
+            if ($conversation->status === 'resuelto') {
+                $conversation->update([
+                    'status' => 'active',
+                    'assigned_to' => null,
+                    'is_bot_active' => true,
+                    'resolved_at' => null,
+                ]);
+                // Continuar procesando con el bot
+                return ['process' => true, 'reason' => null];
+            }
+
+            if ($conversation->status === 'blocked') {
+                return ['process' => false, 'reason' => 'Conversación bloqueada'];
+            }
+
+            // Verificar si el bot está activo (false si hay operador asignado o desactivado manual)
+            if (!$conversation->is_bot_active) {
+                return ['process' => false, 'reason' => 'Bot desactivado'];
+            }
         }
 
         return ['process' => true, 'reason' => null];
@@ -63,16 +73,25 @@ class ChatHistoryService
     /**
      * Obtener o crear conversación por número telefónico
      */
-    public function getOrCreateConversation(string $phoneNumber, ?string $contactName = null): ChatConversation
+    public function getOrCreateConversation(string $phoneNumber, ?string $contactName = null, ?string $channel = null, ?string $instanceName = null): ChatConversation
     {
-        return ChatConversation::firstOrCreate(
+        $conversation = ChatConversation::firstOrCreate(
             ['phone_number' => $phoneNumber],
             [
                 'contact_name' => $contactName,
+                'channel' => $channel ?? 'evolution',
+                'instance_name' => $instanceName,
                 'status' => 'active',
                 'last_message_at' => now(),
             ]
         );
+
+        // Actualizar channel si la conversación ya existía pero no tenía channel
+        if ($channel && $conversation->channel === 'evolution' && $channel !== 'evolution') {
+            $conversation->update(['channel' => $channel, 'instance_name' => $instanceName]);
+        }
+
+        return $conversation;
     }
 
     /**

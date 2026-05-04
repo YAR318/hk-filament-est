@@ -23,6 +23,8 @@ class BlockedPhoneResource extends Resource
 {
     protected static ?string $model = BlockedPhone::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $recordTitleAttribute = 'phone_number';
 
     protected static ?string $navigationLabel = 'Números Bloqueados';
@@ -59,13 +61,14 @@ class BlockedPhoneResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->maxLength(20)
                             ->placeholder('Ejemplo: 5217531672288')
-                            ->helperText('Ingresa el número con código de país (sin + ni espacios)'),
+                            ->rule('regex:/^[0-9]{10,15}$/')
+                            ->helperText('Solo dígitos (10-15), con código de país, sin + ni espacios'),
 
                         TextInput::make('reason')
                             ->label('Motivo del Bloqueo (Opcional)')
-                            ->maxLength(255)
+                            ->maxLength(500)
                             ->placeholder('Ej: Spam, mensajes molestos, etc.')
-                            ->helperText('Describe por qué bloqueas este número'),
+                            ->helperText('Describe por qué bloqueas este número (máx. 500 caracteres)'),
 
                         Toggle::make('is_blocked')
                             ->label('¿Bloquear este número?')

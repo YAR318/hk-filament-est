@@ -121,6 +121,8 @@ class ChatHistoryController extends Controller
      */
     public function processIncomingMessage(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info('processIncomingMessage request:', $request->all());
+
         // Extraer datos del request
         $phoneNumber = $request->input('phone_number');
         $messageBody = $request->input('message_body');
@@ -128,6 +130,8 @@ class ChatHistoryController extends Controller
         $remoteJid = $request->input('remote_jid', '');
         $fromMe = $request->input('from_me', false);
         $userName = $request->input('user_name', 'Cliente');
+        $instanceName = $request->input('instance_name', 'HunabkuBot');
+        $channel = $request->input('channel', 'evolution');
 
         // Validación básica
         if (!$phoneNumber || !$messageBody) {
@@ -154,6 +158,9 @@ class ChatHistoryController extends Controller
             ]);
         }
 
+        // Asegurar que la conversación tenga el canal correcto
+        $this->chatHistoryService->getOrCreateConversation($phoneClean, $userName, $channel, $instanceName);
+
         // Guardar mensaje del usuario
         $this->chatHistoryService->addUserMessage(
             $phoneClean,
@@ -170,7 +177,95 @@ class ChatHistoryController extends Controller
             'phone' => $phoneClean,
             'user_name' => $userName,
             'remote_jid' => $remoteJid,
+            'instance_name' => $instanceName,
+            'channel' => $channel,
             'history' => $history
+        ]);
+    }
+
+    /**
+     * Escalar conversación a un operador humano
+     * La IA llama este endpoint cuando detecta que necesita intervención humana
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function escalateToHuman(Request $request)
+    {
+        $phoneNumber = $request->input('phone_number');
+        $reason = $request->input('reason', 'Solicitud de atención humana');
+        $contactName = $request->input('contact_name', 'Cliente');
+
+        if (!$phoneNumber) {
+            return response()->json([
+                'success' => false,
+                'message' => 'phone_number es requerido'
+            ], 400);
+        }
+
+        $phoneClean = preg_replace('/\D/', '', $phoneNumber);
+
+        // Obtener o crear la conversación
+        $conversation = $this->chatHistoryService->getOrCreateConversation($phoneClean, $contactName);
+
+        // Buscar operador disponible con menos carga
+        $operator = \App\Models\Operator::findAvailableOperator();
+
+        if (!$operator) {
+            // No hay operadores disponibles
+            $conversation->update([
+                'escalated_at' => now(),
+                'priority' => 'alta',
+            ]);
+
+            // Guardar mensaje de sistema
+            $this->chatHistoryService->addSystemMessage(
+                $phoneClean,
+                "⚠️ Escalación solicitada pero no hay operadores disponibles. Motivo: {$reason}"
+            );
+
+            return response()->json([
+                'success' => true,
+                'escalated' => false,
+                'reason' => 'no_operators_available',
+                'message' => 'No hay operadores disponibles en este momento. Su consulta quedará registrada y un asesor le contactará pronto.'
+            ]);
+        }
+
+        // Asignar conversación al operador
+        $operator->assignConversation($conversation);
+
+        // Desactivar el bot para esta conversación
+        $conversation->update([
+            'is_bot_active' => false,
+            'escalated_at' => now(),
+            'priority' => 'alta',
+        ]);
+
+        // Guardar mensaje de sistema
+        $this->chatHistoryService->addSystemMessage(
+            $phoneClean,
+            "🔔 Conversación escalada a {$operator->name}. Motivo: {$reason}"
+        );
+
+        // Enviar notificación al panel de Filament del operador
+        if ($operator->user) {
+            \Filament\Notifications\Notification::make()
+                ->title('Nueva Conversación Asignada')
+                ->body("Cliente: {$contactName}\nMotivo: {$reason}")
+                ->success()
+                ->sendToDatabase($operator->user);
+        }
+
+        return response()->json([
+            'success' => true,
+            'escalated' => true,
+            'operator' => [
+                'name' => $operator->name,
+                'phone_number' => $operator->phone_number,
+                'email' => $operator->email,
+            ],
+            'message' => "Conversación asignada a {$operator->name}."
         ]);
     }
 }

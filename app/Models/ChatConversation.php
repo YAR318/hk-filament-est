@@ -11,6 +11,8 @@ class ChatConversation extends Model
     protected $fillable = [
         'phone_number',
         'contact_name',
+        'channel',
+        'instance_name',
         'status',
         'last_message_at',
         'metadata',
@@ -21,6 +23,7 @@ class ChatConversation extends Model
         'response_time_seconds',
         'escalated_at',
         'resolved_at',
+        'is_bot_active',
     ];
 
     protected $casts = [
@@ -29,6 +32,7 @@ class ChatConversation extends Model
         'last_human_response_at' => 'datetime',
         'escalated_at' => 'datetime',
         'resolved_at' => 'datetime',
+        'is_bot_active' => 'boolean',
     ];
 
     public function messages(): HasMany
@@ -62,6 +66,7 @@ class ChatConversation extends Model
                     'content' => $message->content,
                 ];
             })
+            ->values()
             ->toArray();
     }
 }
